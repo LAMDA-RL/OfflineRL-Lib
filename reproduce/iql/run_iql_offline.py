@@ -16,11 +16,12 @@ args = parse_args()
 exp_name = "_".join([args.task, args.name] if args.name else [args.task]) 
 logger = CompositeLogger(log_path="./log/iql/offline", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
+    "TensorboardLogger": {"activate": not args.debug}, 
     "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
 })
 setup(args, logger)
 
-env, dataset = get_d4rl_dataset(args.task, fix_terminal=False, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
+env, dataset = get_d4rl_dataset(args.task, fix_terminal=args.fix_terminal, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
 

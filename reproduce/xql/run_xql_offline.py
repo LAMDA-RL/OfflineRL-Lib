@@ -9,24 +9,25 @@ from offlinerllib.utils.eval import eval_policy
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
 from UtilsRL.net import MLP
-from UtilsRL.rl.actor import SquashedGaussianActor
+from UtilsRL.rl.actor import ClippedGaussianActor
 from UtilsRL.rl.critic import DoubleCritic, Critic
 
 args = parse_args()
 exp_name = "_".join([args.task, args.name] if args.name else [args.task]) 
 logger = CompositeLogger(log_path="./log/xql/offline", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
+    "TensorboardLogger": {"activate": not args.debug}, 
     "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
 })
 setup(args, logger)
 
-env, dataset = get_d4rl_dataset(args.task, fix_terminal=True, normalize_reward=True)
+env, dataset = get_d4rl_dataset(args.task, fix_terminal=args.fix_terminal, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
 
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
 
 actor_backend = MLP(input_dim=obs_shape, hidden_dims=args.hidden_dims, dropout=args.dropout)
-actor = SquashedGaussianActor(
+actor = ClippedGaussianActor(
     backend=actor_backend, 
     input_dim=args.hidden_dims[-1], 
     output_dim=action_shape, 

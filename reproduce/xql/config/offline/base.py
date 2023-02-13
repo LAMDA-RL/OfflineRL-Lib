@@ -21,7 +21,9 @@ class wandb(NameSpace):
 conditioned_logstd = False
 policy_logstd_min = -5.0
 max_action = 1.0
-
+fix_terminal = True
+normalize_obs = False
+normalize_reward = True
 actor_opt_decay_schedule = "cosine"
 
 debug = False

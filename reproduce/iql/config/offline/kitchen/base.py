@@ -12,3 +12,6 @@ tau = 0.005
 dropout = 0.1
 expextile = 0.7
 temperature = 0.5
+
+normalize_obs = False
+normalize_reward = True

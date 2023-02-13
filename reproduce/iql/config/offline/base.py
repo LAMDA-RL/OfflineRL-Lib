@@ -13,6 +13,7 @@ max_action = 1.0
 actor_opt_decay_schedule = "cosine"
 conditioned_logstd = False
 policy_logstd_min = -5.0
+fix_terminal = True
 
 name = None
 class wandb(NameSpace):

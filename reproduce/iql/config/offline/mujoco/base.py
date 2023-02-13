@@ -13,5 +13,5 @@ dropout = None
 expectile = 0.7
 temperature = 3.0
 
-normalize_obs = True
-normalize_reward = False
+normalize_obs = False
+normalize_reward = True
