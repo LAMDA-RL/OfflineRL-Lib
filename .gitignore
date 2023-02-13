@@ -1,0 +1,4 @@
+**/*.ipynb
+**/log
+**/.vscode
+**/__pycache__
