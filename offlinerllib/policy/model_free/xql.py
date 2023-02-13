@@ -34,7 +34,6 @@ class XQLPolicy(BasePolicy):
         discount: float = 0.99, 
         max_action: float = 1.0, 
         device: Union[str, torch.device] = "cpu"
-        
     ) -> None:
         super().__init__()
         self.actor = actor

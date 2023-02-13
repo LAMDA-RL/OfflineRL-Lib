@@ -47,7 +47,7 @@ def _normalize_reward(dataset):
     
 def _normalize_obs(dataset):
     all_obs = np.concatenate([dataset["observations"], dataset["next_observations"]], axis=0)
-    obs_mean, obs_std = all_obs.mean(0), all_obs.std(0)
+    obs_mean, obs_std = all_obs.mean(0), all_obs.std(0)+1e-6
     dataset["observations"] = (dataset["observations"] - obs_mean) / obs_std
     dataset["next_observations"] = (dataset["next_observations"] - obs_mean) / obs_std
     return dataset, {
@@ -55,7 +55,7 @@ def _normalize_obs(dataset):
         "obs_std": obs_std
     }
         
-def get_d4rl_dataset(task, fix_terminal=True, normalize_reward=True, normalize_obs=False):
+def get_d4rl_dataset(task, fix_terminal=False, normalize_reward=False, normalize_obs=False):
     env = gym.make(task)
     dataset = d4rl.qlearning_dataset(env)
     if fix_terminal:

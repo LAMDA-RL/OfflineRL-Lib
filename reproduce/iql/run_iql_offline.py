@@ -3,36 +3,42 @@ import torch
 import wandb
 from tqdm import trange
 from offlinerllib.utils.d4rl import get_d4rl_dataset
-from offlinerllib.policy.model_free import XQLPolicy
+from offlinerllib.policy.model_free import IQLPolicy
 from offlinerllib.utils.eval import eval_policy
 
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
 from UtilsRL.net import MLP
-from UtilsRL.rl.actor import SquashedGaussianActor
+from UtilsRL.rl.actor import SquashedGaussianActor, SquashedDeterministicActor, ClippedGaussianActor
 from UtilsRL.rl.critic import DoubleCritic, Critic
 
 args = parse_args()
 exp_name = "_".join([args.task, args.name] if args.name else [args.task]) 
-logger = CompositeLogger(log_path="./log/xql/offline", name=exp_name, loggers_config={
+logger = CompositeLogger(log_path="./log/iql/offline", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
     "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
 })
 setup(args, logger)
 
-env, dataset = get_d4rl_dataset(args.task, fix_terminal=True, normalize_reward=True)
-
+env, dataset = get_d4rl_dataset(args.task, fix_terminal=False, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
 
 actor_backend = MLP(input_dim=obs_shape, hidden_dims=args.hidden_dims, dropout=args.dropout)
-actor = SquashedGaussianActor(
-    backend=actor_backend, 
-    input_dim=args.hidden_dims[-1], 
-    output_dim=action_shape, 
-    conditioned_logstd=args.conditioned_logstd, 
-    logstd_min = args.policy_logstd_min
-).to(args.device)
+if args.iql_deterministic: 
+    actor = SquashedDeterministicActor(
+        backend=actor_backend, 
+        input_dim=args.hidden_dims[-1], 
+        output_dim=action_shape, 
+    ).to(args.device)
+else:
+    actor = ClippedGaussianActor(
+        backend=actor_backend, 
+        input_dim=args.hidden_dims[-1], 
+        output_dim=action_shape, 
+        conditioned_logstd=args.conditioned_logstd, 
+        logstd_min = args.policy_logstd_min
+    ).to(args.device)
 actor_optim = torch.optim.Adam(actor.parameters(), lr=args.actor_lr)
 if args.actor_opt_decay_schedule:
     actor_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(actor_optim, args.max_epoch * args.step_per_epoch)
@@ -50,20 +56,13 @@ critic_v = Critic(
     backend=torch.nn.Identity(), 
     input_dim=obs_shape, 
     hidden_dims=args.hidden_dims, 
-    norm_layer=args.norm_layer, 
-    dropout=args.value_dropout
 ).to(args.device)
 critic_v_optim = torch.optim.Adam(critic_v.parameters(), lr=args.critic_v_lr)
 
-policy = XQLPolicy(
+policy = IQLPolicy(
     actor=actor, critic_q=critic_q, critic_v=critic_v, 
     actor_optim=actor_optim, critic_q_optim=critic_q_optim, critic_v_optim=critic_v_optim, 
-    num_v_update=args.num_v_update, 
-    scale_random_sample=args.scale_random_sample, 
-    loss_temperature=args.loss_temperature, 
-    aw_temperature=args.aw_temperature, 
-    use_log_loss=args.use_log_loss, 
-    noise_std=args.noise_std, 
+    expectile=args.expectile, temperature=args.temperature, 
     tau=args.tau, 
     discount=args.discount, 
     max_action=args.max_action, 
@@ -88,5 +87,5 @@ for i_epoch in trange(1, args.max_epoch+1):
     if i_epoch % args.log_interval == 0:
         logger.log_scalars("", train_metrics, step=i_epoch)
         logger.log_scalars("Eval", eval_metrics, step=i_epoch)
-    
-    
+        
+        

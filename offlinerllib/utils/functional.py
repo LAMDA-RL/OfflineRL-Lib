@@ -7,8 +7,6 @@ def grad_gumbel(x, clip_max=7):
     
     x1 = x - x_max
     return (torch.exp(x1) - torch.exp(-x_max)) / (torch.exp(x1) - x*torch.exp(-x_max)).mean(dim=0, keepdim=True)
-    
-
 
 def gumbel_log_loss(pred, target, alpha=1.0, clip_max=7.0):
     """
@@ -27,4 +25,6 @@ def gumbel_rescale_loss(pred, target, alpha=1.0, clip_max=7.0):
     # return torch.exp(-max_diff) * (torch.exp(diff)-diff-1)
     return torch.exp(diff - max_diff) - diff*torch.exp(-max_diff) - torch.exp(-max_diff)
     
-    
+def expectile_regression(pred, target, expectile):
+    diff = target - pred
+    return (expectile - (diff < 0).float()).abs() * diff**2

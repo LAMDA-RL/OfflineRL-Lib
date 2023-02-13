@@ -1,6 +1,6 @@
 from reproduce.xql.config.offline.antmaze.base import *
 
-task = "antmaze-umaze-v0"
+task = "antmaze-large-diverse-v0"
 
 batch_size = 1024
 double = True
