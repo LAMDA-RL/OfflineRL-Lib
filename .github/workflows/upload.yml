@@ -60,7 +60,7 @@ jobs:
 
   upload: 
     name: upload to pypi
-    needs: [build_sdist, build_wheels]
+    needs: [build_sdist]
     runs-on: ubuntu-latest
     steps: 
       - uses: actions/setup-python@v2

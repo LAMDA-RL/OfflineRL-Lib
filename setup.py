@@ -2,7 +2,6 @@
 
 import pathlib
 from setuptools import setup, find_packages
-from pybind11.setup_helpers import Pybind11Extension, build_ext
 
 ROOT_DIR = pathlib.Path(__file__).parent
 README = (ROOT_DIR / "README.md").read_text()
