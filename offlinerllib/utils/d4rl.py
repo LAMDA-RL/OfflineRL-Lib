@@ -14,7 +14,7 @@ def _calc_terminal(dataset):
         elif np.linalg.norm(dataset["observations"][i+1] - dataset["next_observations"][i]) > 1e-6:
             terminal[i] = True
             count += 1
-    terminal[-1] = True
+    # terminal[-1] = True
     return terminal
     
 def _antmaze_normalize_reward(dataset):
