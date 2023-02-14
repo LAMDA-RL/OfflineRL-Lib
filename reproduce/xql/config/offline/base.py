@@ -7,6 +7,7 @@ step_per_epoch = 1000
 eval_episode = 10
 eval_interval = 10
 log_interval = 10
+save_interval = 50
 batch_size = 1024
 num_v_update = 1
 
@@ -21,7 +22,6 @@ class wandb(NameSpace):
 conditioned_logstd = False
 policy_logstd_min = -5.0
 max_action = 1.0
-fix_terminal = True
 normalize_obs = False
 normalize_reward = True
 actor_opt_decay_schedule = "cosine"

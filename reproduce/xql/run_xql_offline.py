@@ -21,7 +21,7 @@ logger = CompositeLogger(log_path="./log/xql/offline", name=exp_name, loggers_co
 })
 setup(args, logger)
 
-env, dataset = get_d4rl_dataset(args.task, fix_terminal=args.fix_terminal, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
+env, dataset = get_d4rl_dataset(args.task, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
 
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
@@ -89,5 +89,8 @@ for i_epoch in trange(1, args.max_epoch+1):
     if i_epoch % args.log_interval == 0:
         logger.log_scalars("", train_metrics, step=i_epoch)
         logger.log_scalars("Eval", eval_metrics, step=i_epoch)
+        
+    if i_epoch % args.save_interval == 0:
+        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/xql/{args.task}/policy/")
     
     

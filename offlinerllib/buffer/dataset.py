@@ -44,7 +44,6 @@ class D4RLDataset(Dataset):
         )
         
         
-        
 class ReplayDataset(Dataset):
     def __init__(self, observation_space: gym.spaces.Box, action_dim: int,
                  capacity: int):

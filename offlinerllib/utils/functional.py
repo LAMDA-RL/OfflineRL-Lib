@@ -27,4 +27,4 @@ def gumbel_rescale_loss(pred, target, alpha=1.0, clip_max=7.0):
     
 def expectile_regression(pred, target, expectile):
     diff = target - pred
-    return (expectile - (diff < 0).float()).abs() * diff**2
+    return torch.where(diff > 0, expectile, 1-expectile) * (diff**2)
