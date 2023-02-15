@@ -9,7 +9,7 @@ from operator import itemgetter
 from offlinerllib.policy import BasePolicy
 from offlinerllib.utils.misc import make_target
 from offlinerllib.utils.functional import gumbel_log_loss, gumbel_rescale_loss
-from offlinerllib.module.actor import DeterministicActor, SquashedGaussianActor
+from offlinerllib.module.actor import DeterministicActor, GaussianActor
 
 class XQLPolicy(BasePolicy):
     """
@@ -102,8 +102,8 @@ class XQLPolicy(BasePolicy):
             q = self.critic_q_target(obss, actions)
             exp_advantage = torch.exp((q-v)*self.aw_temperature).clamp(max=100.0)
         if isinstance(self.actor, DeterministicActor):
-            policy_out = torch.sum((self.actor.sample(obss) - actions)**2, dim=1)
-        elif isinstance(self.actor, SquashedGaussianActor):
+            policy_out = torch.sum((self.actor.sample(obss)[0] - actions)**2, dim=1)
+        elif isinstance(self.actor, GaussianActor):
             policy_out = - self.actor.evaluate(obss, actions)[0]
         actor_loss = (exp_advantage * policy_out).mean()
         self.actor_optim.zero_grad()
