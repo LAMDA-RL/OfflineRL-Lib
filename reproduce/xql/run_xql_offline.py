@@ -8,9 +8,9 @@ from offlinerllib.utils.eval import eval_policy
 
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
-from UtilsRL.net import MLP
-from UtilsRL.rl.actor import ClippedGaussianActor
-from UtilsRL.rl.critic import DoubleCritic, Critic
+from offlinerllib.module.net.mlp import MLP
+from offlinerllib.module.actor import ClippedGaussianActor
+from offlinerllib.module.critic import DoubleCritic, Critic
 
 args = parse_args()
 exp_name = "_".join([args.task, args.name, "seed"+str(args.seed)]) 
