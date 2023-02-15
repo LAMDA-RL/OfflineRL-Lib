@@ -13,7 +13,7 @@ from UtilsRL.rl.actor import SquashedGaussianActor, SquashedDeterministicActor, 
 from UtilsRL.rl.critic import DoubleCritic, Critic
 
 args = parse_args()
-exp_name = "_".join([args.task, args.name] if args.name else [args.task]) 
+exp_name = "_".join([args.task, args.name, "seed"+str(args.seed)]) 
 logger = CompositeLogger(log_path="./log/iql/offline", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
     "TensorboardLogger": {"activate": not args.debug}, 
@@ -90,6 +90,6 @@ for i_epoch in trange(1, args.max_epoch+1):
         logger.log_scalars("Eval", eval_metrics, step=i_epoch)
 
     if i_epoch % args.save_interval == 0:
-        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/iql/{args.task}/{args.name}/policy/")
+        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/iql/{args.task}/{args.name}_seed{args.seed}/policy/")
     
         
