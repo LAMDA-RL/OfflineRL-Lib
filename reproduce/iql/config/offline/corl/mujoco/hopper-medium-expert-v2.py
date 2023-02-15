@@ -1,4 +1,4 @@
-from reproduce.iql.config.offline.original.mujoco.base import *
+from reproduce.iql.config.offline.corl.mujoco.base import *
 
 task = "hopper-medium-expert-v2"
 

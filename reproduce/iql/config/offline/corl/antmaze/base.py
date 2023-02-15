@@ -1,4 +1,4 @@
-from reproduce.iql.config.offline.original.base import *
+from reproduce.iql.config.offline.corl.base import *
 
 task = None
 

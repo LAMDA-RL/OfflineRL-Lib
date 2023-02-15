@@ -1,4 +1,4 @@
-from reproduce.iql.config.offline.original.antmaze.base import *
+from reproduce.iql.config.offline.corl.antmaze.base import *
 
 task = "antmaze-umaze-v0"
 
