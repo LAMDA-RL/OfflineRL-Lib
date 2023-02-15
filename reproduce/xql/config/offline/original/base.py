@@ -14,7 +14,7 @@ num_v_update = 1
 use_log_loss = False
 noise_std = 0
 
-name = None
+name = "original"
 class wandb(NameSpace):
     entity = None
     project = None
