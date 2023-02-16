@@ -9,7 +9,7 @@ from offlinerllib.utils.eval import eval_policy
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
 from offlinerllib.module.net.mlp import MLP
-from offlinerllib.module.actor import SquashedGaussianActor, SquashedDeterministicActor, ClippedGaussianActor
+from offlinerllib.module.actor import SquashedDeterministicActor, ClippedGaussianActor
 from offlinerllib.module.critic import DoubleCritic, Critic
 
 args = parse_args()

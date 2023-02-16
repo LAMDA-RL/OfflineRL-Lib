@@ -11,7 +11,7 @@ save_interval = 50
 batch_size = 256
 max_action = 1.0
 
-actor_opt_decay_schedule = None
+actor_opt_decay_schedule = "cosine"
 conditioned_logstd = False
 policy_logstd_min = -5.0
 
