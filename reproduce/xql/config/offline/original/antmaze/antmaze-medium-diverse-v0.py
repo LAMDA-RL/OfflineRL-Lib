@@ -1,4 +1,4 @@
-from reproduce.xql.config.offline.antmaze.base import *
+from reproduce.xql.config.offline.original.antmaze.base import *
 
 task = "antmaze-medium-diverse-v0"
 

@@ -1,4 +1,4 @@
-from reproduce.xql.config.offline.kitchen.base import *
+from reproduce.xql.config.offline.original.kitchen.base import *
 
 task = None
 

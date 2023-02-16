@@ -1,4 +1,4 @@
-from reproduce.xql.config.offline.androit.base import *
+from reproduce.xql.config.offline.original.androit.base import *
 
 task = None
 

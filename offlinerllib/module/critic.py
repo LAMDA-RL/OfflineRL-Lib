@@ -120,7 +120,7 @@ class DoubleCritic(nn.Module):
     ***(any args of MLP)
     """
     _reduce_fn_ = {
-        "min": lambda x: torch.min(x, dim=0)[0], 
+        "min": lambda x: torch.min(x, dim=0)[0],
         "max": lambda x: torch.max(x, dim=0)[0], 
         "mean": lambda x: torch.mean(x, dim=0)[0]
     }

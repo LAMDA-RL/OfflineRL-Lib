@@ -1,4 +1,4 @@
-from reproduce.xql.config.offline.base import *
+from reproduce.xql.config.offline.original.base import *
 
 actor_lr = 3e-4
 critic_q_lr = 3e-4

@@ -1,4 +1,4 @@
-from reproduce.xql.config.offline.mujoco.base import *
+from reproduce.xql.config.offline.original.mujoco.base import *
 
 task = "hopper-medium-v2"
 

@@ -85,7 +85,7 @@ class IQLPolicy(BasePolicy):
 
         # update actor
         with torch.no_grad():
-            v = self.critic_v(obss)    # theoretically we can re-use v from above, however the original implementation re-computes v with the updated critic_v, so we keep the same
+            # v = self.critic_v(obss)    # theoretically we can re-use v from above, however the original implementation re-computes v with the updated critic_v, so we keep the same
             advantage = q - v
             exp_advanrage = (self._temperature * advantage).exp().clamp(max=100.0)
         if isinstance(self.actor, DeterministicActor):
