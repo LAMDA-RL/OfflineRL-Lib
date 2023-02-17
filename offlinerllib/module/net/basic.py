@@ -81,11 +81,13 @@ class EnsembleLinear(nn.Module):
         self.reset_parameters()
         
     def reset_parameters(self):
-        torch.nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        for i in range(self.ensemble_size):
+            torch.nn.init.kaiming_uniform_(self.weight[i], a=math.sqrt(5))
         if self.bias is not None:
-            fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight)
-            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
-            torch.nn.init.uniform_(self.bias, -bound, bound)
+            for i in range(self.ensemble_size):
+                fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight[i])
+                bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+                torch.nn.init.uniform_(self.bias[i], -bound, bound)
         
     def forward(self, input: torch.Tensor):
         if self.bias is None:
