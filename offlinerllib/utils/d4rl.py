@@ -38,8 +38,8 @@ def _normalize_reward(dataset):
     return dataset, {}
     
 def _normalize_obs(dataset):
-    # all_obs = np.concatenate([dataset["observations"], dataset["next_observations"]], axis=0)
-    all_obs = dataset["observations"]
+    all_obs = np.concatenate([dataset["observations"], dataset["next_observations"]], axis=0)
+    # all_obs = dataset["observations"]
     obs_mean, obs_std = all_obs.mean(0), all_obs.std(0)+1e-3
     dataset["observations"] = (dataset["observations"] - obs_mean) / obs_std
     dataset["next_observations"] = (dataset["next_observations"] - obs_mean) / obs_std

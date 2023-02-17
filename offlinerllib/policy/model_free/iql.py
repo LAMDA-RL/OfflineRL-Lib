@@ -63,19 +63,21 @@ class IQLPolicy(BasePolicy):
             batch[_key] = torch.from_numpy(_value).to(self.device)
         obss, actions, next_obss, rewards, terminals = itemgetter("observations", "actions", "next_observations", "rewards", "terminals")(batch)
         
-        # update v
+        # do the inference
         with torch.no_grad():
-            q = self.critic_q_old(obss, actions)
+            q_old = self.critic_q_old(obss, actions)
+            v_old = self.critic_v(obss)
+            next_v_old = self.critic_v(next_obss)
+
+        # update v
         v = self.critic_v(obss)
-        critic_v_loss = expectile_regression(v, q, self._expectile).mean()
+        critic_v_loss = expectile_regression(v, q_old, self._expectile).mean()
         self.critic_v_optim.zero_grad()
         critic_v_loss.backward()
         self.critic_v_optim.step()
         
         # update q
-        with torch.no_grad():
-            next_v = self.critic_v(next_obss)
-            target_q = rewards + self._discount * (1 - terminals) * next_v
+        target_q = rewards + self._discount * (1 - terminals) * next_v_old
         q_both = self.critic_q(obss, actions, reduce=None)
         critic_q_loss = (q_both - target_q).pow(2).sum(0).mean()
 
@@ -84,14 +86,12 @@ class IQLPolicy(BasePolicy):
         self.critic_q_optim.step()
 
         # update actor
-        with torch.no_grad():
-            # v = self.critic_v(obss)    # theoretically we can re-use v from above, however the original implementation re-computes v with the updated critic_v, so we keep the same
-            advantage = q - v
-            exp_advanrage = (self._temperature * advantage).exp().clamp(max=100.0)
+        advantage = q_old - v_old
+        exp_advanrage = (self._temperature * advantage).exp().clamp(max=100.0)
         if isinstance(self.actor, DeterministicActor):
             # use bc loss
             policy_out = torch.sum((self.actor.sample(obss)[0] - actions)**2, dim=1)
-        elif isinstance(self.actor, GaussianActor):
+        else:
             policy_out = - self.actor.evaluate(obss, actions)[0]
         actor_loss = (exp_advanrage * policy_out).mean()
 
