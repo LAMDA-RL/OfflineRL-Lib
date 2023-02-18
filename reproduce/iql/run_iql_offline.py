@@ -13,8 +13,8 @@ from offlinerllib.module.actor import SquashedDeterministicActor, ClippedGaussia
 from offlinerllib.module.critic import DoubleCritic, Critic
 
 args = parse_args()
-exp_name = "_".join([args.task, args.name, "seed"+str(args.seed)]) 
-logger = CompositeLogger(log_path="./log/iql/offline", name=exp_name, loggers_config={
+exp_name = "_".join([args.task, "seed"+str(args.seed)]) 
+logger = CompositeLogger(log_path=f"./log/iql/offline/{args.name}", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
     "TensorboardLogger": {"activate": not args.debug}, 
     "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
@@ -90,6 +90,6 @@ for i_epoch in trange(1, args.max_epoch+1):
         logger.log_scalars("Eval", eval_metrics, step=i_epoch)
 
     if i_epoch % args.save_interval == 0:
-        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/iql/{args.task}/{args.name}_seed{args.seed}/policy/")
+        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/iql/offline/{args.name}/{args.task}_seed{args.seed}/policy/")
     
         

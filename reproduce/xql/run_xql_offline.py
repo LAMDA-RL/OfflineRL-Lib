@@ -13,8 +13,8 @@ from offlinerllib.module.actor import ClippedGaussianActor
 from offlinerllib.module.critic import DoubleCritic, Critic
 
 args = parse_args()
-exp_name = "_".join([args.task, args.name, "seed"+str(args.seed)]) 
-logger = CompositeLogger(log_path="./log/xql/offline", name=exp_name, loggers_config={
+exp_name = "_".join([args.task, "seed"+str(args.seed)]) 
+logger = CompositeLogger(log_path=f"./log/xql/offline/{args.name}", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
     "TensorboardLogger": {"activate": not args.debug}, 
     "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
@@ -22,7 +22,6 @@ logger = CompositeLogger(log_path="./log/xql/offline", name=exp_name, loggers_co
 setup(args, logger)
 
 env, dataset = get_d4rl_dataset(args.task, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
-
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
 
@@ -91,5 +90,5 @@ for i_epoch in trange(1, args.max_epoch+1):
         logger.log_scalars("Eval", eval_metrics, step=i_epoch)
         
     if i_epoch % args.save_interval == 0:
-        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/xql/{args.task}/{args.name}_seed{args.seed}/policy/")
+        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/xql/offline/{args.name}/{args.task}_seed{args.seed}/policy/")
     
