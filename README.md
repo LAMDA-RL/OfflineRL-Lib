@@ -9,7 +9,7 @@ Currently OfflineRL-Lib is heavily based off [UtilsRL](https://github.com/typove
 
 
 ## Benchmark Results
-When certain design choices, e.g. the choice of autodiff backend (jax or tf or pytorch), the preference for each hyper-parameters may vary as well. Hence when benchmarking, we tested each algorithm's performace in three ways: 
+When certain design choices, e.g. the choice of autodiff backend (jax or tf or pytorch) vary, the preference for each hyper-parameters may vary as well. Hence when benchmarking, we tested each algorithm's performace in three ways: 
 + **Paper Performance**: the performance reported in white paper;
 + **OfflineRL-Lib (with paper args)**: the performance obtained by using OfflineRL-Lib implementation and the configs in paper or original implementations;
 + **OfflineRL-Lib (with CORL args)**: the performance obtained by using OfflineRL-Lib implementation and the configs in [CORL](https://github.com/tinkoff-ai/CORL). 
