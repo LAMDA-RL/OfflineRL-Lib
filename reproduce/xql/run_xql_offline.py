@@ -4,7 +4,7 @@ import wandb
 from tqdm import trange
 from offlinerllib.utils.d4rl import get_d4rl_dataset
 from offlinerllib.policy.model_free import XQLPolicy
-from offlinerllib.utils.eval import eval_policy
+from offlinerllib.utils.eval import eval_offline_policy
 
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
@@ -81,7 +81,7 @@ for i_epoch in trange(1, args.max_epoch+1):
             actor_lr_scheduler.step()
     
     if i_epoch % args.eval_interval == 0:
-        eval_metrics = eval_policy(env, policy, args.eval_episode, seed=args.seed)
+        eval_metrics = eval_offline_policy(env, policy, args.eval_episode, seed=args.seed)
     
         logger.info(f"Epicode {i_epoch}: \n{eval_metrics}")
 

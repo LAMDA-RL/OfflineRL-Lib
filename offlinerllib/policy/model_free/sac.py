@@ -12,7 +12,6 @@ from offlinerllib.utils.misc import make_target
 from offlinerllib.module.actor import BaseActor
 from offlinerllib.module.critic import Critic
 from offlinerllib.utils.misc import merge_dict
-from UtilsRL.misc.decorator import profile
 
 
 class SACPolicy(BasePolicy):
@@ -77,7 +76,7 @@ class SACPolicy(BasePolicy):
         q_values_min = torch.min(q_values, dim=0)[0]
         q_values_std = torch.std(q_values, dim=0).mean().item()
         actor_loss = (self._alpha * new_logprobs - q_values_min).mean()
-        return (actor_loss,  {"misc/q_values_std": q_values_std, "misc/q_values_min": q_values_min.mean().item()})
+        return actor_loss,  {"misc/q_values_std": q_values_std, "misc/q_values_min": q_values_min.mean().item()}
 
     def _critic_loss(
         self, batch: Dict[str, torch.Tensor]
@@ -94,7 +93,7 @@ class SACPolicy(BasePolicy):
         q_values = self.critic(obss, actions)
         
         critic_loss = (q_values - target_q).pow(2).sum(0).mean()
-        return (critic_loss, {})
+        return critic_loss, {}
 
     def _alpha_loss(self, obss) -> torch.Tensor:
         with torch.no_grad():
@@ -105,18 +104,20 @@ class SACPolicy(BasePolicy):
     def update(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
         for _key, _value in batch.items():
             batch[_key] = torch.from_numpy(_value).to(self.device)
+            
+        metrics = {}
         obss = batch["observations"]
 
         # critic update
-        critic_tensor_dict, critic_item_dict = self._critic_loss(batch)
-        critic_loss = critic_tensor_dict["loss/critic"]
+        critic_loss, critic_loss_metrics = self._critic_loss(batch)
+        metrics.update(critic_loss_metrics)
         self.critic_optim.zero_grad()
         critic_loss.backward()
         self.critic_optim.step()
 
         # actor update
-        actor_tensor_dict, actor_item_dict = self._actor_loss(obss)
-        actor_loss = actor_tensor_dict["loss/actor"]
+        actor_loss, actor_loss_metrics = self._actor_loss(obss)
+        metrics.update(actor_loss_metrics)
         self.actor_optim.zero_grad()
         actor_loss.backward()
         self.actor_optim.step()
@@ -130,20 +131,17 @@ class SACPolicy(BasePolicy):
         else:
             alpha_loss = 0
         self._alpha = self._log_alpha.exp().detach()
-        alpha_item_dict = {"misc/alpha": self._alpha.item()}
+        metrics["misc/alpha"] = self._alpha.item()
 
         self._sync_weight()
 
         # update info
-        item_dicts = [actor_item_dict, critic_item_dict, alpha_item_dict]
-        result = {
+        metrics.update({
             "loss/actor": actor_loss.item(),
             "loss/critic": critic_loss.item(),
             "loss/alpha": alpha_loss
-        }
-        result.update(merge_dict(item_dicts))
-
-        return result
+        })
+        return metrics
 
     def _sync_weight(self) -> None:
         for o, n in zip(self.critic_target.parameters(),
