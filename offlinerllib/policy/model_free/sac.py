@@ -75,8 +75,9 @@ class SACPolicy(BasePolicy):
             q_values = q_values.unsqueeze(0)
         q_values_min = torch.min(q_values, dim=0)[0]
         q_values_std = torch.std(q_values, dim=0).mean().item()
+        q_values_mean = q_values.mean().item()
         actor_loss = (self._alpha * new_logprobs - q_values_min).mean()
-        return actor_loss,  {"misc/q_values_std": q_values_std, "misc/q_values_min": q_values_min.mean().item()}
+        return actor_loss,  {"misc/q_values_std": q_values_std, "misc/q_values_min": q_values_min.mean().item(), "misc/q_values_mean": q_values_mean}
 
     def _critic_loss(
         self, batch: Dict[str, torch.Tensor]
@@ -128,9 +129,9 @@ class SACPolicy(BasePolicy):
             self.alpha_optim.zero_grad()
             alpha_loss.backward()
             self.alpha_optim.step()
+            self._alpha = self._log_alpha.exp().detach()
         else:
             alpha_loss = 0
-        self._alpha = self._log_alpha.exp().detach()
         metrics["misc/alpha"] = self._alpha.item()
 
         self._sync_weight()

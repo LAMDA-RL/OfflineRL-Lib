@@ -1,6 +1,5 @@
 import os
 import torch
-import torch.nn as nn
 from torch.distributions import Normal
 import wandb
 from tqdm import trange

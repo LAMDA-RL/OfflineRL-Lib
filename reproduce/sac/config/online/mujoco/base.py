@@ -25,7 +25,6 @@ eval_interval = 10
 eval_episode = 10
 save_interval = 50
 log_interval = 10
-save_interval = 50
 warmup_epoch = 2
 random_policy_epoch = 5
 max_trajectory_length = 1000

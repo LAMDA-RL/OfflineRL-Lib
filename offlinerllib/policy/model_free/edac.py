@@ -24,8 +24,7 @@ class EDACPolicy(SACNPolicy):
                  tau: float = 0.005,
                  eta: float = 1.0,
                  gamma: float = 0.99,
-                 alpha: Union[float, Tuple[float, torch.Tensor,
-                                           optim.Optimizer]] = 0.2,
+                 alpha: Union[float, Tuple[float, float]] = 0.2,
                  do_reverse_update: bool = False,
                  device: Union[str, torch.device] = "cpu") -> None:
         super().__init__(actor, critic, actor_optim, critic_optim, tau, gamma,

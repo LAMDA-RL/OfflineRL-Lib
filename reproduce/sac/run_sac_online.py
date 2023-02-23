@@ -1,5 +1,7 @@
 import os
 import torch
+import torch.nn as nn
+from torch.distributions import Normal
 import wandb
 import gym
 import numpy as np
@@ -75,7 +77,7 @@ all_traj_lengths = [0]
 all_traj_returns = [0]
 for i_epoch in trange(1, args.num_epoch+1):
     for i_step in range(args.step_per_epoch):
-        if i_epoch < args.random_policy_epoch:
+        if i_epoch < args.random_policy_epoch+1:
             action = env.action_space.sample()
         else:
             action = policy.select_action(obs)
@@ -99,7 +101,7 @@ for i_epoch in trange(1, args.num_epoch+1):
             all_traj_lengths.append(cur_traj_length)
             cur_traj_length = cur_traj_return = 0
         
-        if i_epoch < args.warmup_epoch:
+        if i_epoch < args.warmup_epoch+1:
             train_metrics = {}
         else:
             batch_data = buffer.random_batch(args.batch_size)

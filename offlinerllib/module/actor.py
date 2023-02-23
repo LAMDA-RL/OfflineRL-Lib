@@ -469,11 +469,11 @@ class SquashedGaussianActor(GaussianActor):
         if deterministic:
             action, logprob = dist.tanh_mean, None
         elif self.reparameterize:
-            action = dist.rsample()
-            logprob = dist.log_prob(action).sum(-1, keepdim=True)
+            action, raw_action = dist.rsample(return_raw=True)
+            logprob = dist.log_prob(raw_action, pre_tanh_value=True).sum(-1, keepdim=True)
         else:
-            action = dist.sample()
-            logprob = dist.log_prob(action).sum(-1, keepdim=True)
+            action, raw_action = dist.sample(return_raw=True)
+            logprob = dist.log_prob(raw_action, pre_tanh_value=True).sum(-1, keepdim=True)
         
         info = {"mean": mean, "logstd": logstd} if return_mean_logstd else {}
         return action, logprob, info
