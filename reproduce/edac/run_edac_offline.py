@@ -1,11 +1,10 @@
 import os
 import torch
-import torch.nn as nn
-from torch.distributions import Normal
 import wandb
 from tqdm import trange
 from offlinerllib.utils.d4rl import get_d4rl_dataset
-from offlinerllib.policy.model_free import SACNPolicy
+from offlinerllib.policy.model_free import EDACPolicy
+
 from offlinerllib.utils.eval import eval_policy
 
 from UtilsRL.exp import parse_args, setup
@@ -16,7 +15,7 @@ from offlinerllib.module.critic import Critic
 
 args = parse_args()
 exp_name = "_".join([args.task, "seed"+str(args.seed)]) 
-logger = CompositeLogger(log_path=f"./log/sacn/offline/{args.name}", name=exp_name, loggers_config={
+logger = CompositeLogger(log_path=f"./log/edac/offline/{args.name}", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
     "TensorboardLogger": {"activate": not args.debug}, 
     "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
@@ -44,12 +43,13 @@ critic = Critic(
 ).to(args.device)
 critic_optim = torch.optim.Adam(critic.parameters(), lr=args.critic_lr)
 
-policy = SACNPolicy(
+policy = EDACPolicy(
     actor=actor, 
     critic=critic, 
     actor_optim=actor_optim, 
     critic_optim=critic_optim, 
     tau=args.tau, 
+    eta=args.eta, 
     gamma=args.gamma, 
     alpha=(-float(action_shape), args.alpha_lr) if args.auto_alpha else args.alpha, 
     do_reverse_update=args.do_reverse_update, 
@@ -74,6 +74,6 @@ for i_epoch in trange(1, args.max_epoch+1):
         logger.log_scalars("Eval", eval_metrics, step=i_epoch)
 
     if i_epoch % args.save_interval == 0:
-        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/sacn/offline/{args.name}/{args.task}/seed{args.seed}/policy/")
+        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/edac/offline/{args.name}/{args.task}/seed{args.seed}/policy/")
     
         

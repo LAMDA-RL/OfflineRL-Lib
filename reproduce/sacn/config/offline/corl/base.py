@@ -25,7 +25,7 @@ policy_logstd_min = -5
 normalize_obs = False
 normalize_reward = False
 
-do_reverse_update = True
+do_reverse_update = False
 
 name = "original"
 class wandb(NameSpace):

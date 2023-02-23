@@ -5,7 +5,6 @@ from torch.distributions import Normal
 import torch
 import math
 
-
 class TanhNormal(Normal):
     def __init__(self, 
                  loc: torch.Tensor, 
@@ -14,7 +13,7 @@ class TanhNormal(Normal):
                  ):
         super().__init__(loc, scale)
         self.epsilon = epsilon
-        
+    
     def log_prob(self, 
                  value: torch.Tensor, 
                  pre_tanh_value: bool=False, 
