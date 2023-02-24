@@ -336,7 +336,7 @@ class GaussianActor(BaseActor):
         
         self.register_buffer("logstd_min", torch.tensor(logstd_min))
         self.register_buffer("logstd_max", torch.tensor(logstd_max))
-        
+    
     def forward(self, input: torch.Tensor):
         out = self.output_layer(self.backend(input))
         if self._logstd_is_layer:
@@ -450,7 +450,7 @@ class SquashedGaussianActor(GaussianActor):
             share_hidden_layer=share_hidden_layer
         )
         self.actor_type = "SquashedGaussianActor"
-        
+    
     def sample(self, obs: torch.Tensor, deterministic: bool=False, return_mean_logstd=False, *args, **kwargs) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         """Sampling procedure. The action is sampled from a Tanh-transformed Gaussian distribution.
 
@@ -469,11 +469,11 @@ class SquashedGaussianActor(GaussianActor):
         if deterministic:
             action, logprob = dist.tanh_mean, None
         elif self.reparameterize:
-            action = dist.rsample()
-            logprob = dist.log_prob(action).sum(-1, keepdim=True)
+            action, raw_action = dist.rsample(return_raw=True)
+            logprob = dist.log_prob(raw_action, pre_tanh_value=True).sum(-1, keepdim=True)
         else:
-            action = dist.sample()
-            logprob = dist.log_prob(action).sum(-1, keepdim=True)
+            action, raw_action = dist.sample(return_raw=True)
+            logprob = dist.log_prob(raw_action, pre_tanh_value=True).sum(-1, keepdim=True)
         
         info = {"mean": mean, "logstd": logstd} if return_mean_logstd else {}
         return action, logprob, info
