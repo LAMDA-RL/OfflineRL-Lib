@@ -3,7 +3,7 @@ import numpy as np
 import gym
 import d4rl
 
-from offlinerllib.buffer.dataset import D4RLDataset
+from offlinerllib.buffer.d4rl_replay import D4RLDataset
 
 def _calc_terminal(dataset):
     terminal = dataset["terminals"].copy()
