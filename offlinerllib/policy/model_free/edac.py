@@ -1,6 +1,4 @@
-import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from operator import itemgetter
 
@@ -16,23 +14,25 @@ class EDACPolicy(SACNPolicy):
     Uncertainty-Based Offline Reinforcement Learning with Diversified Q-Ensemble <Ref:https://arxiv.org/abs/2110.01548>
     """
 
-    def __init__(self,
-                 actor: BaseActor,
-                 critic: Critic,
-                 actor_optim: optim.Optimizer,
-                 critic_optim: optim.Optimizer,
-                 tau: float = 0.005,
-                 eta: float = 1.0,
-                 gamma: float = 0.99,
-                 alpha: Union[float, Tuple[float, float]] = 0.2,
-                 do_reverse_update: bool = False,
-                 device: Union[str, torch.device] = "cpu") -> None:
+    def __init__(
+        self,
+        actor: BaseActor,
+        critic: Critic,
+        actor_optim: optim.Optimizer,
+        critic_optim: optim.Optimizer,
+        tau: float = 0.005,
+        eta: float = 1.0,
+        gamma: float = 0.99,
+        alpha: Union[float, Tuple[float, float]] = 0.2,
+        do_reverse_update: bool = False,
+        device: Union[str, torch.device] = "cpu"
+    ) -> None:
         super().__init__(actor, critic, actor_optim, critic_optim, tau, gamma,
                          alpha, do_reverse_update, device)
         self.eta = eta
 
     def _critic_loss(self, batch: Dict[str, torch.Tensor]) -> Tuple[Dict[str, torch.Tensor], Dict[str, float]]:
-        critic_loss, critic_item_dict = super()._critic_loss(batch)
+        critic_loss, critic_loss_metrics = super()._critic_loss(batch)
         obss, actions, next_obss, rewards, terminals = itemgetter("observations", "actions", "next_observations", "rewards", "terminals")(batch)
         ensemble_size = self.critic.ensemble_size
         assert (ensemble_size > 1)
@@ -57,5 +57,5 @@ class EDACPolicy(SACNPolicy):
         diversity_loss = diversity_loss / scale
         
         critic_loss = critic_loss + self.eta * diversity_loss
-        critic_item_dict["loss/critic_diversity_loss"] = diversity_loss.item()
-        return (critic_loss, critic_item_dict)
+        critic_loss_metrics["loss/critic_diversity_loss"] = diversity_loss.item()
+        return (critic_loss, critic_loss_metrics)

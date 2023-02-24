@@ -2,14 +2,12 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from operator import itemgetter
 
 from typing import Dict, Union, Tuple
 
 from offlinerllib.policy.model_free.sac import SACPolicy
 from offlinerllib.module.actor import BaseActor
 from offlinerllib.module.critic import Critic
-from offlinerllib.utils.misc import merge_dict
 
 
 class SACNPolicy(SACPolicy):
@@ -34,7 +32,10 @@ class SACNPolicy(SACPolicy):
         else:
             return super().update(batch)
     
-    def reverse_update(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
+    def reverse_update(
+        self, 
+        batch: Dict[str, torch.Tensor]
+    ) -> Dict[str, float]:
         for _key, _value in batch.items():
             batch[_key] = torch.from_numpy(_value).to(self.device)
         metrics = {}
@@ -52,7 +53,7 @@ class SACNPolicy(SACPolicy):
         metrics["misc/alpha"] = self._alpha.item()
         
         # actor update
-        actor_loss, actor_loss_metrics = self._actor_loss(obss)
+        actor_loss, actor_loss_metrics = self._actor_loss(batch)
         metrics.update(actor_loss_metrics)
         self.actor_optim.zero_grad()
         actor_loss.backward()

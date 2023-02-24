@@ -1,4 +1,3 @@
-import os
 import torch
 import wandb
 from tqdm import trange
@@ -75,5 +74,3 @@ for i_epoch in trange(1, args.max_epoch+1):
 
     if i_epoch % args.save_interval == 0:
         logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/edac/offline/{args.name}/{args.task}/seed{args.seed}/policy/")
-    
-        

@@ -1,5 +1,5 @@
 from reproduce.edac.config.offline.corl.base import *
 
-task = "halfcheetah-expert-v2"
-num_critics = 10
+task = "hopper-medium-expert-v2"
+num_critics = 50
 eta = 1.0

@@ -1,6 +1,4 @@
-import os
 import torch
-from torch.distributions import Normal
 import wandb
 from tqdm import trange
 from offlinerllib.utils.d4rl import get_d4rl_dataset
@@ -74,5 +72,3 @@ for i_epoch in trange(1, args.max_epoch+1):
 
     if i_epoch % args.save_interval == 0:
         logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/sacn/offline/{args.name}/{args.task}/seed{args.seed}/policy/")
-    
-        
