@@ -59,7 +59,7 @@ policy = SACNPolicy(
 # main loop
 policy.train()
 for i_epoch in trange(1, args.max_epoch+1):
-    for i_step in trange(args.step_per_epoch):
+    for i_step in range(args.step_per_epoch):
         batch = dataset.sample(args.batch_size)
         train_metrics = policy.update(batch)
     
