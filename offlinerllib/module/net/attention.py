@@ -8,6 +8,7 @@ from offlinerllib.module.net.basic import miniblock, EnsembleLinear
 
 Attention: nn.Module = nn.MultiheadAttention
 
+
 class TransformerBlock(nn.Module):
     def __init__(
         self, 

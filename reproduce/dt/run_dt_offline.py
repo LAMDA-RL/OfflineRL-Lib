@@ -62,8 +62,6 @@ trainloader = DataLoader(
     num_workers=args.num_workers
 )
 trainloader_iter = iter(trainloader)
-offline_buffer.random_batch(args.batch_size)
-
 for i_epoch in trange(1, args.max_epoch+1):
     for i_step in trange(args.step_per_epoch):
         batch = next(trainloader_iter)

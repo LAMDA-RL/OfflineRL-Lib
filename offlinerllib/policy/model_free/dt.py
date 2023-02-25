@@ -56,13 +56,10 @@ class DecisionTransformerPolicy(BasePolicy):
         return action_pred[0, -1].squeeze().cpu().numpy()
     
     def update(self, batch: Dict[str, Any], clip_grad: Optional[float]=None):
+        for _key, _value in batch.items():
+            batch[_key] = convert_to_tensor(_value, self.device)
         obss, actions, returns_to_go, timesteps, masks = \
             itemgetter("observations", "actions", "returns", "timesteps", "masks")(batch)
-        obss = convert_to_tensor(obss, self.device)
-        actions = convert_to_tensor(actions, self.device)
-        returns_to_go = convert_to_tensor(returns_to_go, self.device)
-        timesteps = convert_to_tensor(timesteps, self.device)
-        masks = convert_to_tensor(masks, self.device)
         key_padding_mask = ~masks.to(torch.bool)
         
         action_pred = self.dt(
@@ -84,18 +81,5 @@ class DecisionTransformerPolicy(BasePolicy):
         return {
             "loss/mse_loss", mse_loss.item(), 
         }
-        
-        
-        
-        
-            
-        
-        
-        
-        
-
-        
-        
-        
         
         

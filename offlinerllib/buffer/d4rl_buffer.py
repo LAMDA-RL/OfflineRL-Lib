@@ -23,10 +23,10 @@ def pad_along_axis(
 
 class D4RLTransitionBuffer(Buffer, IterableDataset, Dataset):
     def __init__(self, dataset):
-        self.observations = dataset["observations"].astype(np.float32), 
-        self.actions = dataset["actions"].astype(np.float32), 
-        self.rewards = dataset["rewards"][:, None].astype(np.float32), 
-        self.terminals = dataset["terminals"][:, None].astype(np.float32), 
+        self.observations = dataset["observations"].astype(np.float32)
+        self.actions = dataset["actions"].astype(np.float32)
+        self.rewards = dataset["rewards"][:, None].astype(np.float32)
+        self.terminals = dataset["terminals"][:, None].astype(np.float32)
         self.next_observations = dataset["next_observations"].astype(np.float32)
         self.size = len(dataset["observations"])
         self.masks = np.ones([self.size, 1], dtype=np.float32)
@@ -46,11 +46,12 @@ class D4RLTransitionBuffer(Buffer, IterableDataset, Dataset):
         
     def __iter__(self):
         while True:
-            idx = np.random.choice(len(self))
+            idx = np.random.randint(self.size)
             yield self.__getitem__(idx)
         
     def random_batch(self, batch_size: int):
         idx = np.random.randint(self.size, size=batch_size)
+        return self.__getitem__(idx)
         
 
 class D4RLTrajectoryBuffer(Buffer, IterableDataset):
@@ -113,4 +114,5 @@ class D4RLTrajectoryBuffer(Buffer, IterableDataset):
                 batch_data[_key].append(_value)
         for _key, _value in batch_data.items():
             batch_data[_key] = np.vstack(_value)
+        return batch_data
             

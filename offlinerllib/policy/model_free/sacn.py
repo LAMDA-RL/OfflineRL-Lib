@@ -8,6 +8,7 @@ from typing import Dict, Union, Tuple
 from offlinerllib.policy.model_free.sac import SACPolicy
 from offlinerllib.module.actor import BaseActor
 from offlinerllib.module.critic import Critic
+from offlinerllib.utils.misc import convert_to_tensor
 
 
 class SACNPolicy(SACPolicy):
@@ -37,7 +38,7 @@ class SACNPolicy(SACPolicy):
         batch: Dict[str, torch.Tensor]
     ) -> Dict[str, float]:
         for _key, _value in batch.items():
-            batch[_key] = torch.from_numpy(_value).to(self.device)
+            batch[_key] = convert_to_tensor(_value, self.device)
         metrics = {}
         obss = batch["observations"]
         

@@ -10,6 +10,7 @@ from offlinerllib.policy import BasePolicy
 from offlinerllib.utils.misc import make_target
 from offlinerllib.module.actor import BaseActor
 from offlinerllib.module.critic import Critic
+from offlinerllib.utils.misc import convert_to_tensor
 
 
 class SACPolicy(BasePolicy):
@@ -112,7 +113,7 @@ class SACPolicy(BasePolicy):
 
     def update(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
         for _key, _value in batch.items():
-            batch[_key] = torch.from_numpy(_value).to(self.device)
+            batch[_key] = convert_to_tensor(_value, self.device)
             
         metrics = {}
         obss = batch["observations"]

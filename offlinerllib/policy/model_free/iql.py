@@ -11,6 +11,7 @@ from offlinerllib.policy import BasePolicy
 from offlinerllib.utils.misc import make_target
 from offlinerllib.module.actor import DeterministicActor, GaussianActor
 from offlinerllib.utils.functional import expectile_regression
+from offlinerllib.utils.misc import convert_to_tensor
 
 
 class IQLPolicy(BasePolicy):
@@ -60,7 +61,7 @@ class IQLPolicy(BasePolicy):
     
     def update(self, batch: Dict) -> Dict[str, float]:
         for _key, _value in batch.items():
-            batch[_key] = torch.from_numpy(_value).to(self.device)
+            batch[_key] = convert_to_tensor(_value, self.device)
         obss, actions, next_obss, rewards, terminals = itemgetter("observations", "actions", "next_observations", "rewards", "terminals")(batch)
         
         # do the inference

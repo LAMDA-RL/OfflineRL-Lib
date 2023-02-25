@@ -10,6 +10,7 @@ from UtilsRL.logger import CompositeLogger
 from offlinerllib.module.net.mlp import MLP
 from offlinerllib.module.actor import SquashedGaussianActor
 from offlinerllib.module.critic import Critic
+from offlinerllib.buffer import D4RLTransitionBuffer
 
 args = parse_args()
 exp_name = "_".join([args.task, "seed"+str(args.seed)]) 
@@ -23,6 +24,8 @@ setup(args, logger)
 env, dataset = get_d4rl_dataset(args.task, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
+
+offline_buffer = D4RLTransitionBuffer(dataset)
 
 actor_backend = MLP(input_dim=obs_shape, hidden_dims=args.hidden_dims)
 actor = SquashedGaussianActor(
@@ -58,7 +61,7 @@ policy = SACNPolicy(
 policy.train()
 for i_epoch in trange(1, args.max_epoch+1):
     for i_step in range(args.step_per_epoch):
-        batch = dataset.sample(args.batch_size)
+        batch = offline_buffer.random_batch(args.batch_size)
         train_metrics = policy.update(batch)
     
     if i_epoch % args.eval_interval == 0:
