@@ -2,11 +2,11 @@
 > 🚧 This repo is not ready for release, benchmarking is ongoing. 🚧
 
 OfflineRL-Lib provides unofficial and benchmarked PyTorch implementations for selected OfflineRL algorithms, including: 
-- [Implicit Q-Learning](https://arxiv.org/abs/2110.06169)
 - [Extreme Q-Learning](https://arxiv.org/abs/2301.02328)
-
-Currently OfflineRL-Lib is heavily based off [UtilsRL](https://github.com/typoverflow/UtilsRL), and we will release a standalone version once it is ready. 
-
+- [Implicit Q-Learning](https://arxiv.org/abs/2110.06169)
+- [Decision Transformer](https://arxiv.org/abs/2106.01345)
+- [EDAC](https://arxiv.org/abs/2110.01548)
+- [SAC-N](https://arxiv.org/abs/2110.01548)
 
 ## Benchmark Results
 When certain design choices, e.g. the choice of autodiff backend (jax or tf or pytorch) vary, the preference for each hyper-parameters may vary as well. Hence when benchmarking, we tested each algorithm's performace in three ways: 

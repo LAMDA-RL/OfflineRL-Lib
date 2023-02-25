@@ -9,6 +9,9 @@ from offlinerllib.utils.misc import convert_to_tensor
 
 
 class DecisionTransformerPolicy(BasePolicy):
+    """
+    Decision Transformer: Reinforcement Learning via Sequence Modeling <Ref: https://arxiv.org/abs/2106.01345>
+    """
     def __init__(
         self, 
         dt: Transformer, 
