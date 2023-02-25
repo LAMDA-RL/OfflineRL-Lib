@@ -34,6 +34,14 @@ setup(
     include_package_data = True, 
     tests_require=["pytest", "mock"], 
     python_requires=">=3.7", 
-    install_requires = get_install_requires(), 
+    install_requires = [
+        "gym>=0.23.1,<=0.24.1", 
+        "tqdm", 
+        "numpy", 
+        "torch", 
+        "pandas", 
+        "UtilsRL"
+    ]
+    # install_requires = get_install_requires(), 
     # extras_require = get_extras_require(), 
 )
