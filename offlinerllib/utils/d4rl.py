@@ -1,8 +1,7 @@
-import numpy as np
-
 import gym
+import numpy as np
 import d4rl
-    
+
 def antmaze_normalize_reward(dataset):
     dataset["rewards"] -= 1.0
     return dataset, {}

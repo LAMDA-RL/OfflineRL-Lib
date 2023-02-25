@@ -1,8 +1,10 @@
 import copy
 import inspect
+from typing import Any, Dict, List
+
 import torch
 import torch.nn as nn
-from typing import Any, List, Dict
+
 
 def make_target(m: nn.Module) -> nn.Module:
     target = copy.deepcopy(m)

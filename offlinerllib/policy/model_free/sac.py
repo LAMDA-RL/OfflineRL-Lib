@@ -1,16 +1,14 @@
+from operator import itemgetter
+from typing import Dict, Tuple, Union
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 
-from operator import itemgetter
-
-from typing import Dict, Union, Tuple
-
-from offlinerllib.policy import BasePolicy
-from offlinerllib.utils.misc import make_target
 from offlinerllib.module.actor import BaseActor
 from offlinerllib.module.critic import Critic
-from offlinerllib.utils.misc import convert_to_tensor
+from offlinerllib.policy import BasePolicy
+from offlinerllib.utils.misc import convert_to_tensor, make_target
 
 
 class SACPolicy(BasePolicy):

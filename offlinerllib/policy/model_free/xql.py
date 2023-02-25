@@ -1,16 +1,15 @@
+from operator import itemgetter
+from typing import Dict, Tuple, Union
+
 import numpy as np
 import torch
 import torch.nn as nn
 
-from copy import deepcopy
-from typing import Dict, Union, Tuple
-from operator import itemgetter
-
-from offlinerllib.policy import BasePolicy
-from offlinerllib.utils.misc import make_target
-from offlinerllib.utils.functional import gumbel_log_loss, gumbel_rescale_loss
 from offlinerllib.module.actor import DeterministicActor, GaussianActor
-from offlinerllib.utils.misc import convert_to_tensor
+from offlinerllib.policy import BasePolicy
+from offlinerllib.utils.functional import gumbel_log_loss, gumbel_rescale_loss
+from offlinerllib.utils.misc import convert_to_tensor, make_target
+
 
 class XQLPolicy(BasePolicy):
     """

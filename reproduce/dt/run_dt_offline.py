@@ -1,17 +1,15 @@
-import os
 import torch
 import wandb
-from tqdm import trange
 from torch.utils.data import DataLoader
-
-from offlinerllib.utils.d4rl import get_d4rl_dataset
-from offlinerllib.module.net.attention import DecisionTransformer
-from offlinerllib.policy.model_free import DecisionTransformerPolicy
-from offlinerllib.utils.eval import eval_decision_transformer
-from offlinerllib.buffer import D4RLTrajectoryBuffer
-
+from tqdm import trange
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
+
+from offlinerllib.buffer import D4RLTrajectoryBuffer
+from offlinerllib.module.net.attention import DecisionTransformer
+from offlinerllib.policy.model_free import DecisionTransformerPolicy
+from offlinerllib.utils.d4rl import get_d4rl_dataset
+from offlinerllib.utils.eval import eval_decision_transformer
 
 args = parse_args()
 exp_name = "_".join([args.task, "seed"+str(args.seed)]) 

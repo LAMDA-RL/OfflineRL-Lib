@@ -1,5 +1,6 @@
 import torch
 
+
 def grad_gumbel(x, clip_max=7):
     x = torch.clamp(x, None, clip_max)
     x_max = torch.max(x, dim=0)

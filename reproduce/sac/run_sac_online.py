@@ -1,20 +1,17 @@
-import os
-import torch
-import torch.nn as nn
-from torch.distributions import Normal
-import wandb
 import gym
 import numpy as np
+import torch
+import wandb
 from tqdm import trange
-from offlinerllib.policy.model_free import SACPolicy
-from offlinerllib.utils.eval import eval_online_policy
-
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
-from UtilsRL.rl.buffer import TransitionSimpleReplay, convert_space_to_spec
-from offlinerllib.module.net.mlp import MLP
+from UtilsRL.rl.buffer import TransitionSimpleReplay
+
 from offlinerllib.module.actor import SquashedGaussianActor
-from offlinerllib.module.critic import DoubleCritic, Critic
+from offlinerllib.module.critic import Critic
+from offlinerllib.module.net.mlp import MLP
+from offlinerllib.policy.model_free import SACPolicy
+from offlinerllib.utils.eval import eval_online_policy
 
 args = parse_args()
 exp_name = "_".join([args.task, "seed"+str(args.seed)]) 

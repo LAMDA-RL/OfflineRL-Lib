@@ -19,13 +19,12 @@ num_heads = 1
 num_layers = 3
 num_workers = 4
 
-
-max_epoch = 100
-step_per_epoch = 1000
+max_epoch = 1000
+step_per_epoch = 100
 eval_episode = 10
-eval_interval = 5
-log_interval = 5
-save_interval = 5
+eval_interval = 10
+log_interval = 10
+save_interval = 50
 warmup_steps = 10000
 
 name = "corl"

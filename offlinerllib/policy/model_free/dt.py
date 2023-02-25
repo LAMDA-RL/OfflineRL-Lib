@@ -1,11 +1,12 @@
-from typing import Optional, Any, Union, Dict
 from operator import itemgetter
-import torch
-import torch.nn as nn
+from typing import Any, Dict, Optional, Union
 
-from offlinerllib.policy import BasePolicy
+import torch
+
 from offlinerllib.module.net.attention import Transformer
+from offlinerllib.policy import BasePolicy
 from offlinerllib.utils.misc import convert_to_tensor
+
 
 class DecisionTransformerPolicy(BasePolicy):
     def __init__(

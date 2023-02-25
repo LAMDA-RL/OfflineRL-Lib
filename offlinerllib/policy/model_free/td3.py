@@ -1,13 +1,12 @@
+from typing import Any, Callable, Dict, Tuple, Union
+
 import numpy as np
 import torch
 import torch.nn as nn
-
-from copy import deepcopy
-from typing import Callable, Dict, Union, Tuple, Any
+from offlinerlkit.utils.noise import GaussianNoise
 
 from offlinerllib.policy import BasePolicy
 from offlinerllib.utils.misc import make_target
-from offlinerlkit.utils.noise import GaussianNoise
 
 
 class TD3Policy(BasePolicy):

@@ -1,13 +1,11 @@
+from typing import Dict, Tuple, Union
+
 import torch
 import torch.nn as nn
-import numpy as np
 
-
-from typing import Dict, Union, Tuple
-
-from offlinerllib.policy.model_free.sac import SACPolicy
 from offlinerllib.module.actor import BaseActor
 from offlinerllib.module.critic import Critic
+from offlinerllib.policy.model_free.sac import SACPolicy
 from offlinerllib.utils.misc import convert_to_tensor
 
 

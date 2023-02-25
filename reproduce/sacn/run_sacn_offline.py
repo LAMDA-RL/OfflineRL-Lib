@@ -1,16 +1,16 @@
 import torch
 import wandb
 from tqdm import trange
-from offlinerllib.utils.d4rl import get_d4rl_dataset
-from offlinerllib.policy.model_free import SACNPolicy
-from offlinerllib.utils.eval import eval_offline_policy
-
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
-from offlinerllib.module.net.mlp import MLP
+
+from offlinerllib.buffer import D4RLTransitionBuffer
 from offlinerllib.module.actor import SquashedGaussianActor
 from offlinerllib.module.critic import Critic
-from offlinerllib.buffer import D4RLTransitionBuffer
+from offlinerllib.module.net.mlp import MLP
+from offlinerllib.policy.model_free import SACNPolicy
+from offlinerllib.utils.d4rl import get_d4rl_dataset
+from offlinerllib.utils.eval import eval_offline_policy
 
 args = parse_args()
 exp_name = "_".join([args.task, "seed"+str(args.seed)]) 

@@ -1,8 +1,8 @@
+from typing import Any, Dict, Union
+
 import numpy as np
-import torch
 import torch.nn as nn
 
-from typing import Dict, Union, Any
 
 class BasePolicy(nn.Module):
     def __init__(self) -> None:

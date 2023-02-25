@@ -1,8 +1,10 @@
-from typing import Dict, Callable, List
-import torch
+from typing import Callable, Dict, List
+
 import gym
-import torch.nn as nn
 import numpy as np
+import torch
+import torch.nn as nn
+
 
 @torch.no_grad()
 def eval_offline_policy(

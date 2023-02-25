@@ -1,13 +1,9 @@
 import numpy as np
-import collections
-import gym
-import d4rl
-from torch.utils.data import IterableDataset, Dataset
+from torch.utils.data import Dataset, IterableDataset
 
-from offlinerllib.utils.functional import discounted_cum_sum
 from offlinerllib.buffer.base import Buffer
+from offlinerllib.utils.functional import discounted_cum_sum
 
-from typing import Optional
 
 def pad_along_axis(
     arr: np.ndarray, pad_to: int, axis: int = 0, fill_value: float = 0.0

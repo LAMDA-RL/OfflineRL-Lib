@@ -1,12 +1,12 @@
+from operator import itemgetter
+from typing import Dict, Tuple, Union
+
 import torch
 import torch.optim as optim
-from operator import itemgetter
 
-from typing import Union, Tuple, Dict
-
-from offlinerllib.policy.model_free.sacn import SACNPolicy
 from offlinerllib.module.actor import BaseActor
 from offlinerllib.module.critic import Critic
+from offlinerllib.policy.model_free.sacn import SACNPolicy
 
 
 class EDACPolicy(SACNPolicy):
