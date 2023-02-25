@@ -42,18 +42,19 @@ def eval_policy(
 def eval_decision_transformer(
     env: gym.Env, actor: nn.Module, target_returns: List[float], n_episode: int, seed: int, score_func=None
 ) -> Dict[str, float]:
-    def eval_one_return(target_return):
+    
+    def eval_one_return(target_return, score_func=None):
         if score_func is None:
             score_func = env.get_normalized_score
         env.seed(seed)
         actor.eval()
         episode_lengths = []
         episode_returns = []
-        timesteps = np.arange(actor.episode_len, dtype=int)
+        timesteps = np.arange(actor.episode_len, dtype=int)[None, :]
         for _ in range(n_episode):
-            states = np.zeros([1, actor.episode_len+1, actor.state_dim])
-            actions = np.zeros([1, actor.episode_len+1, actor.action_dim])
-            returns_to_go = np.zeros([1, actor.episode_len+1, 1], dtype=torch.float)
+            states = np.zeros([1, actor.episode_len+1, actor.state_dim], dtype=np.float32)
+            actions = np.zeros([1, actor.episode_len+1, actor.action_dim], dtype=np.float32)
+            returns_to_go = np.zeros([1, actor.episode_len+1, 1], dtype=np.float32)
             state, done = env.reset(), False
             
             states[:, 0] = state
@@ -62,10 +63,10 @@ def eval_decision_transformer(
             episode_return = episode_length = 0
             for step in range(actor.episode_len):
                 action = actor.select_action(
-                    states[:, step+1-actor.seq_len:step+1], 
-                    actions[:, step+1-actor.seq_len:step+1], 
-                    returns_to_go[:, step+1-actor.seq_len:step+1], 
-                    timesteps[:, step+1-actor.seq_len:step+1]
+                    states[:, :step+1][:, -actor.seq_len: ], 
+                    actions[:, :step+1][:, -actor.seq_len: ], 
+                    returns_to_go[:, :step+1][:, -actor.seq_len: ], 
+                    timesteps[:, :step+1][:, -actor.seq_len: ]
                 )
                 next_state, reward, done, info = env.step(action)
                 actions[:, step] = action
@@ -92,7 +93,7 @@ def eval_decision_transformer(
     
     ret = {}
     for target in target_returns:
-        ret.update(eval_one_return(target))
+        ret.update(eval_one_return(target, score_func))
     return ret
     
             

@@ -65,24 +65,18 @@ trainloader_iter = iter(trainloader)
 offline_buffer.random_batch(args.batch_size)
 
 for i_epoch in trange(1, args.max_epoch+1):
-    for i_step in range(args.step_per_epoch):
+    for i_step in trange(args.step_per_epoch):
         batch = next(trainloader_iter)
         train_metrics = policy.update(batch, clip_grad=args.clip_grad)
         dt_optim_scheduler.step()
     
     if i_epoch % args.eval_interval == 0:
         eval_metrics = eval_decision_transformer(env, policy, args.target_returns, args.eval_episode, seed=args.seed)
-        # eval_metrics = []
-        # for target_return in args.target_returns:
-            # m = eval_decision_transformer(env, policy, args.eval_episode, seed=args.seed)
-            # eval_metrics[target_return] = m
-            # logger.info(f"Episode {i_epoch}: target return = {target_return} \n{m}")
+        logger.info(f"Episode {i_epoch}: \n{eval_metrics}")
     
     if i_epoch % args.log_interval == 0:
         logger.log_scalars("", train_metrics, step=i_epoch)
         logger.log_scalars("Eval", eval_metrics, step=i_epoch)
-        # for target_return, m in eval_metrics.items():
-            # logger.log_scalars(f"Eval,target_return={target_return}", m, step=i_epoch)
         
     if i_epoch % args.save_interval == 0:
         logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/dt/offline/{args.name}/{args.task}/seed{args.seed}/policy/")

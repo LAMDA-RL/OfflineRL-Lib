@@ -22,7 +22,7 @@ num_workers = 4
 
 max_epoch = 100
 step_per_epoch = 1000
-eval_episode = 100
+eval_episode = 10
 eval_interval = 5
 log_interval = 5
 save_interval = 5

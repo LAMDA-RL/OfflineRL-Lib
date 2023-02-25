@@ -36,7 +36,6 @@ class TransformerBlock(nn.Module):
             nn.Linear(backbone_dim, embed_dim), 
             nn.Dropout(residual_dropout) if residual_dropout else nn.Identity()
         )
-        self.register_buffer("mask", torch.zeros([seq_len, seq_len]).to(torch.bool))
     
     def forward(
         self, 
@@ -101,7 +100,6 @@ class Transformer(nn.Module):
             self.register_buffer("causal_mask", ~torch.tril(torch.ones([seq_len, seq_len])).to(torch.bool))
         else:
             self.register_buffer("causal_mask", torch.zeros([seq_len, seq_len]).to(torch.bool))
-
         
     def forward(
         self, 
@@ -118,7 +116,7 @@ class Transformer(nn.Module):
             mask = torch.bitwise_or(attention_mask.to(torch.bool), mask)
         
         if do_embedding:
-            # do tokenize inside
+            # do tokenize inside ?
             inputs = self.input_embed(inputs)
             if timesteps is not None:
                 inputs = inputs + self.pos_embed(timesteps)
@@ -180,12 +178,13 @@ class DecisionTransformer(Transformer):
         if key_padding_mask is not None:
             key_padding_mask = torch.stack([key_padding_mask, key_padding_mask, key_padding_mask], dim=2).reshape(B, 3*L)
         
-        stacked_input = torch.stack([return_embedding, state_embedding, action_embedding], dim=2).reshape(B, 3*L)
+        stacked_input = torch.stack([return_embedding, state_embedding, action_embedding], dim=2).reshape(B, 3*L, state_embedding.shape[-1])
         out = super().forward(
             inputs=stacked_input, 
             timesteps=None, 
             attention_mask=attention_mask, 
-            key_padding_mask=key_padding_mask
+            key_padding_mask=key_padding_mask, 
+            do_embedding=False
         )
 
         out = self.action_head(out[:, 1::3])

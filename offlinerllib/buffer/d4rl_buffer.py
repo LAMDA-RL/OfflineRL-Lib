@@ -90,7 +90,7 @@ class D4RLTrajectoryBuffer(Buffer, IterableDataset):
         if sample_len < self.seq_len:
             sample = {k: pad_along_axis(v, pad_to=self.seq_len) for k, v in sample.items()}
         masks = np.hstack([np.ones(sample_len), np.zeros(self.seq_len-sample_len)])
-        sample["masks"] = masks[..., None] # unsqueeze
+        sample["masks"] = masks
         sample["timesteps"] = np.arange(start_idx, start_idx+self.seq_len)
         return sample
     
