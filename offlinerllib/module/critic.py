@@ -51,6 +51,7 @@ class Critic(nn.Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.device = device
+        self.ensemble_size = ensemble_size
         
         if isinstance(hidden_dims, int):
             hidden_dims = [hidden_dims]
@@ -78,7 +79,7 @@ class Critic(nn.Module):
             )
         else:
             raise ValueError(f"ensemble size should be int >= 1.")
-        
+    
     def forward(self, obs: torch.Tensor, action: Optional[torch.Tensor]=None, *args, **kwargs) -> torch.Tensor:
         """Compute the Q-value (when action is given) or V-value (when action is None). 
         

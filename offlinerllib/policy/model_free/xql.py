@@ -74,7 +74,7 @@ class XQLPolicy(BasePolicy):
         for _ in range(self.num_v_update):
             if self.scale_random_sample > 0:
                 random_actions = torch.rand([self.scale_random_sample*actions.shape[0], *actions.shape[1:]]).to(self.device) * self.max_action * 2 - self.max_action
-                v_obss = torch.tile(obss, [self.scale_random_sample+1])
+                v_obss = torch.concat([obss]*(self.scale_random_sample+1), dim=0)
                 v_actions = torch.cat([actions, random_actions], dim=0)
             else:
                 v_obss = obss

@@ -1,6 +1,8 @@
 import copy
+import inspect
 import torch
 import torch.nn as nn
+from typing import Any, List, Dict
 
 def make_target(m: nn.Module) -> nn.Module:
     target = copy.deepcopy(m)
@@ -13,3 +15,7 @@ def convert_to_tensor(obj, device):
         return obj.to(device)
     else:
         return torch.from_numpy(obj).to(device)
+
+def get_attributes(obj) -> Dict[str, Any]:
+    return dict(inspect.getmembers(obj))
+
