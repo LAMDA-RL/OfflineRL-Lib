@@ -55,7 +55,7 @@ class D4RLTransitionBuffer(Buffer, IterableDataset, Dataset):
         
 
 class D4RLTrajectoryBuffer(Buffer, IterableDataset):
-    def __init__(self, dataset, seq_len: int, discount: float=1.0):
+    def __init__(self, dataset, seq_len: int, discount: float=1.0, return_scale: float=1.0):
         # fetch data from dataset
         converted_dataset = {
             "observations": dataset["observations"].astype(np.float32), 
@@ -72,7 +72,7 @@ class D4RLTrajectoryBuffer(Buffer, IterableDataset):
             if dataset["ends"][i]:
                 assert dataset["terminals"][i] or i+1-traj_start == 999 or i==dataset["rewards"].shape[0]-1
                 episode_data = {k: v[traj_start:i+1] for k, v in converted_dataset.items()}
-                episode_data["returns"] = discounted_cum_sum(episode_data["rewards"], discount=discount)
+                episode_data["returns"] = discounted_cum_sum(episode_data["rewards"], discount=discount) / return_scale
                 traj.append(episode_data)
                 traj_len.append(i+1-traj_start)
                 traj_start = i+1

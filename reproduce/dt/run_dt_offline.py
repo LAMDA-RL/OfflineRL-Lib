@@ -26,7 +26,7 @@ env, dataset = get_d4rl_dataset(args.task, normalize_obs=args.normalize_obs, nor
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
 
-offline_buffer = D4RLTrajectoryBuffer(dataset, seq_len=args.seq_len)
+offline_buffer = D4RLTrajectoryBuffer(dataset, seq_len=args.seq_len, return_scale=args.return_scale)
 
 dt = DecisionTransformer(
     obs_dim=obs_shape, 
@@ -69,7 +69,7 @@ for i_epoch in trange(1, args.max_epoch+1):
         dt_optim_scheduler.step()
     
     if i_epoch % args.eval_interval == 0:
-        eval_metrics = eval_decision_transformer(env, policy, args.target_returns, args.eval_episode, seed=args.seed)
+        eval_metrics = eval_decision_transformer(env, policy, args.target_returns, args.return_scale, args.eval_episode, seed=args.seed)
         logger.info(f"Episode {i_epoch}: \n{eval_metrics}")
     
     if i_epoch % args.log_interval == 0:

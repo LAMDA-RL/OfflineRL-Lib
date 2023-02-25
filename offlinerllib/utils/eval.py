@@ -39,7 +39,7 @@ def eval_offline_policy(
     
 @torch.no_grad()
 def eval_decision_transformer(
-    env: gym.Env, actor: nn.Module, target_returns: List[float], n_episode: int, seed: int, score_func=None
+    env: gym.Env, actor: nn.Module, target_returns: List[float], return_scale: float, n_episode: int, seed: int, score_func=None
 ) -> Dict[str, float]:
     
     def eval_one_return(target_return, score_func=None):
@@ -57,7 +57,7 @@ def eval_decision_transformer(
             state, done = env.reset(), False
             
             states[:, 0] = state
-            returns_to_go[:, 0] = target_return
+            returns_to_go[:, 0] = target_return/return_scale
             
             episode_return = episode_length = 0
             for step in range(actor.episode_len):
@@ -70,7 +70,7 @@ def eval_decision_transformer(
                 next_state, reward, done, info = env.step(action)
                 actions[:, step] = action
                 states[:, step+1] = next_state
-                returns_to_go[:, step+1] = returns_to_go[:, step] - reward
+                returns_to_go[:, step+1] = returns_to_go[:, step] - reward/return_scale
                 
                 episode_return += reward
                 episode_length += 1
