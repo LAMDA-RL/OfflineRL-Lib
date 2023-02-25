@@ -83,7 +83,7 @@ for i_epoch in trange(1, args.max_epoch+1):
     if i_epoch % args.eval_interval == 0:
         eval_metrics = eval_policy(env, policy, args.eval_episode, seed=args.seed)
     
-        logger.info(f"Epicode {i_epoch}: \n{eval_metrics}")
+        logger.info(f"Episode {i_epoch}: \n{eval_metrics}")
 
     if i_epoch % args.log_interval == 0:
         logger.log_scalars("", train_metrics, step=i_epoch)

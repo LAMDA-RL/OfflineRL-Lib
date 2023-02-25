@@ -5,7 +5,7 @@ import d4rl
 from torch.utils.data import IterableDataset, Dataset
 
 from offlinerllib.utils.functional import discounted_cum_sum
-from offlinerllib.buffer.base import Replay
+from offlinerllib.buffer.base import Buffer
 
 from typing import Optional
 
@@ -21,13 +21,13 @@ def pad_along_axis(
     return np.pad(arr, pad_width=npad, mode="constant", constant_values=fill_value)
 
 
-class D4RLTransitionReplay(Replay, IterableDataset, Dataset):
+class D4RLTransitionBuffer(Buffer, IterableDataset, Dataset):
     def __init__(self, dataset):
         self.observations = dataset["observations"].astype(np.float32), 
         self.actions = dataset["actions"].astype(np.float32), 
         self.rewards = dataset["rewards"][:, None].astype(np.float32), 
         self.terminals = dataset["terminals"][:, None].astype(np.float32), 
-        self.next_observations = dataset["next_observations"].astype(np.float32), 
+        self.next_observations = dataset["next_observations"].astype(np.float32)
         self.size = len(dataset["observations"])
         self.masks = np.ones([self.size, 1], dtype=np.float32)
         
@@ -53,14 +53,24 @@ class D4RLTransitionReplay(Replay, IterableDataset, Dataset):
         idx = np.random.randint(self.size, size=batch_size)
         
 
-class D4RLTrajectoryReplay(Replay, IterableDataset):
+class D4RLTrajectoryBuffer(Buffer, IterableDataset):
     def __init__(self, dataset, seq_len: int, discount: float=1.0):
+        # fetch data from dataset
+        converted_dataset = {
+            "observations": dataset["observations"].astype(np.float32), 
+            "actions": dataset["actions"].astype(np.float32), 
+            "rewards": dataset["rewards"][:, None].astype(np.float32), 
+            "terminals": dataset["terminals"][:, None].astype(np.float32), 
+            "next_observations": dataset["next_observations"].astype(np.float32)
+        }
+
         traj, traj_len = [], []
         self.seq_len = seq_len
         traj_start = 0
         for i in range(dataset["rewards"].shape[0]):
-            if dataset["terminals"][i] or dataset["timeouts"][i]:
-                episode_data = {k: v[traj_start:i+1] for k, v in dataset.items()}
+            if dataset["ends"][i]:
+                assert dataset["terminals"][i] or i+1-traj_start == 999 or i==dataset["rewards"].shape[0]-1
+                episode_data = {k: v[traj_start:i+1] for k, v in converted_dataset.items()}
                 episode_data["returns"] = discounted_cum_sum(episode_data["rewards"], discount=discount)
                 traj.append(episode_data)
                 traj_len.append(i+1-traj_start)
@@ -70,15 +80,17 @@ class D4RLTrajectoryReplay(Replay, IterableDataset):
         self.traj_num = len(self.traj_len)
         self.size = self.traj_len.sum()
         self.sample_prob = self.traj_len / self.size
+
+        del converted_dataset
         
     def __prepare_sample(self, traj_idx, start_idx):
         traj = self.traj[traj_idx]
-        sample = {k: v[start_idx:start_idx+self.seq_len] for k, v in self.traj.items()}
+        sample = {k: v[start_idx:start_idx+self.seq_len] for k, v in traj.items()}
         sample_len = len(sample["observations"])
         if sample_len < self.seq_len:
-            sample = {k: pad_along_axis(v, seq_len=self.seq_len) for k, v in sample.items()}
+            sample = {k: pad_along_axis(v, pad_to=self.seq_len) for k, v in sample.items()}
         masks = np.hstack([np.ones(sample_len), np.zeros(self.seq_len-sample_len)])
-        sample["masks"] = masks
+        sample["masks"] = masks[..., None] # unsqueeze
         sample["timesteps"] = np.arange(start_idx, start_idx+self.seq_len)
         return sample
     
@@ -90,10 +102,11 @@ class D4RLTrajectoryReplay(Replay, IterableDataset):
         
     def random_batch(self, batch_size: int):
         batch_data = {}
-        traj_idx = np.random.choice(self.traj_len, size=batch_size, p=self.sample_prob)
+        traj_idxs = np.random.choice(self.traj_num, size=batch_size, p=self.sample_prob)
         for i in range(batch_size):
-            start_idx = np.random.choice(self.traj_len[i])
-            sample = self.__prepare_sample(traj_idx[i], start_idx)
+            traj_idx = traj_idxs[i]
+            start_idx = np.random.choice(self.traj_len[traj_idx])
+            sample = self.__prepare_sample(traj_idx, start_idx)
             for _key, _value in sample.items():
                 if not _key in batch_data:
                     batch_data[_key] = []

@@ -1,2 +1,2 @@
-from .base import Replay
-from .d4rl_replay import D4RLTransitionReplay, D4RLTrajectoryReplay
+from .base import Buffer
+from .d4rl_buffer import D4RLTransitionBuffer, D4RLTrajectoryBuffer

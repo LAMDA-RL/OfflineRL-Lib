@@ -13,7 +13,7 @@ class TransformerBlock(nn.Module):
         self, 
         embed_dim: int, 
         seq_len: int, 
-        n_head: int, 
+        num_heads: int, 
         attention_dropout: Optional[float]=None, 
         residual_dropout: Optional[float]=None, 
         backbone_dim: Optional[int]=None, 
@@ -24,7 +24,7 @@ class TransformerBlock(nn.Module):
             backbone_dim = 4 * embed_dim
         self.attention = Attention(
             embed_dim=embed_dim, 
-            num_heads=n_head, 
+            num_heads=num_heads, 
             dropout=attention_dropout, 
             batch_first=True
         )
@@ -72,16 +72,17 @@ class Transformer(nn.Module):
         embed_dim: int, 
         num_layers: int, 
         seq_len: int, 
-        n_head: int, 
+        num_heads: int, 
         causal: bool=False, 
         attention_dropout: Optional[float]=None, 
         residual_dropout: Optional[float]=None, 
         embed_dropout: Optional[float]=None, 
         position_dim: Optional[int]=None
     ) -> None:
+        super().__init__()
         self.input_embed = nn.Linear(input_dim, embed_dim)
         position_dim = position_dim or seq_len
-        self.pos_embed = nn.Linear(position_dim, embed_dim)
+        self.pos_embed = nn.Embedding(position_dim, embed_dim)
         self.embed_dropout = nn.Dropout(embed_dropout) if embed_dropout else nn.Identity()
         self.out_ln = nn.LayerNorm(embed_dim)
         # self.embed_ln = nn.LayerNorm(embed_dim)   # check: whether or not add layer norm before embed dropout
@@ -89,7 +90,7 @@ class Transformer(nn.Module):
             TransformerBlock(
                 embed_dim=embed_dim, 
                 seq_len=seq_len, 
-                n_head=n_head, 
+                num_heads=num_heads, 
                 attention_dropout=attention_dropout, 
                 residual_dropout=residual_dropout
             ) for _ in range(num_layers)
@@ -136,8 +137,8 @@ class DecisionTransformer(Transformer):
         embed_dim: int, 
         num_layers: int, 
         seq_len: int, 
-        epsisode_len: int=1000, 
-        n_head: int=4, 
+        episode_len: int=1000, 
+        num_heads: int=4, 
         attention_dropout: Optional[float]=None, 
         residual_dropout: Optional[float]=None, 
         embed_dropout: Optional[float]=None, 
@@ -146,15 +147,15 @@ class DecisionTransformer(Transformer):
             input_dim=embed_dim, # actually not used
             embed_dim=embed_dim, 
             num_layers=num_layers, 
-            seq_len=seq_len, 
-            n_head=n_head, 
+            seq_len=3*seq_len, # (return_to_go, state, action)
+            num_heads=num_heads, 
             causal=True, 
             attention_dropout=attention_dropout, 
             residual_dropout=residual_dropout, 
             embed_dropout=embed_dropout, 
         )
         # we manually do the embeddings here
-        self.pos_embed = nn.Linear(epsisode_len + seq_len, embed_dim)   # TODO: the input length of time embed
+        self.pos_embed = nn.Embedding(episode_len + seq_len, embed_dim)
         self.obs_embed = nn.Linear(obs_dim, embed_dim)
         self.act_embed = nn.Linear(action_dim, embed_dim)
         self.ret_embed = nn.Linear(1, embed_dim)

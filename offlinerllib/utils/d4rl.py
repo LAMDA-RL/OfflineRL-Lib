@@ -2,31 +2,18 @@ import numpy as np
 
 import gym
 import d4rl
-
-from offlinerllib.buffer.d4rl_replay import D4RLDataset
-
-def _calc_terminal(dataset):
-    terminal = dataset["terminals"].copy()
-    count = 0
-    for i in range(len(terminal) - 1):
-        if terminal[i]:
-            continue
-        elif np.linalg.norm(dataset["observations"][i+1] - dataset["next_observations"][i]) > 1e-6:
-            terminal[i] = True
-            count += 1
-    # terminal[-1] = True
-    return terminal
     
-def _antmaze_normalize_reward(dataset):
+def antmaze_normalize_reward(dataset):
     dataset["rewards"] -= 1.0
     return dataset, {}
     
-def _normalize_reward(dataset):
-    terminal = _calc_terminal(dataset)
+def mujoco_normalize_reward(dataset):
+    split_points = dataset["ends"]
+    split_points[-1] = False   # the last traj may be incomplete, so we discard them
     reward = dataset["rewards"]
     returns, lengths = [], []
     ep_ret, ep_len = 0.0, 0
-    for r, d in zip(reward, terminal):
+    for r, d in zip(reward, split_points):
         ep_ret += float(r)
         ep_len += 1
         if d:
@@ -47,18 +34,99 @@ def _normalize_obs(dataset):
         "obs_mean": obs_mean, 
         "obs_std": obs_std
     }
+
+def qlearning_dataset(env, dataset=None, terminate_on_end: bool=False, discard_last: bool=True, **kwargs):
+    """
+    Returns datasets formatted for use by standard Q-learning algorithms,
+    with observations, actions, next_observations, rewards, and a terminal
+    flag.
+    Args:
+        env: An OfflineEnv object.
+        dataset: An optional dataset to pass in for processing. If None,
+            the dataset will default to env.get_dataset()
+        terminate_on_end (bool): Set done=True on the last timestep
+            in a trajectory. Default is False, and will discard the
+            last timestep in each trajectory.
+        **kwargs: Arguments to pass to env.get_dataset().
+    Returns:
+        A dictionary containing keys:
+            observations: An N x dim_obs array of observations.
+            actions: An N x dim_action array of actions.
+            next_observations: An N x dim_obs array of next observations.
+            rewards: An N-dim float array of rewards.
+            terminals: An N-dim boolean array of "done" or episode termination flags.
+    """
+    if dataset is None:
+        dataset = env.get_dataset(**kwargs)
+
+    N = dataset['rewards'].shape[0]
+    obs_ = []
+    next_obs_ = []
+    action_ = []
+    reward_ = []
+    done_ = []
+    end_ = []
+
+    # The newer version of the dataset adds an explicit
+    # timeouts field. Keep old method for backwards compatability.
+    use_timeouts = False
+    if 'timeouts' in dataset:
+        use_timeouts = True
+
+    episode_step = 0
+    for i in range(N-1):
+        obs = dataset['observations'][i].astype(np.float32)
+        new_obs = dataset['observations'][i+1].astype(np.float32)  # Thus, the next_obs for the last timestep is totally false
+        action = dataset['actions'][i].astype(np.float32)
+        reward = dataset['rewards'][i].astype(np.float32)
+        done_bool = bool(dataset['terminals'][i])
+        end = False
+
+        if use_timeouts:
+            final_timestep = dataset['timeouts'][i]
+        else:
+            final_timestep = (episode_step == env._max_episode_steps - 1)
+        if (not terminate_on_end) and final_timestep:
+            # Skip this transition and don't apply terminals on the last step of an episode
+            episode_step = 0
+            if discard_last:
+                end_[-1] = True   # if discard, then the last timestep will be end
+                continue
+        if done_bool or final_timestep:
+            end = True
+            episode_step = 0
+
+        obs_.append(obs)
+        next_obs_.append(new_obs)
+        action_.append(action)
+        reward_.append(reward)
+        done_.append(done_bool)
+        end_.append(end)
+        episode_step += 1
+    
+    end_[-1] = True   # the last traj will be ended whatsoever
+
+    return {
+        'observations': np.array(obs_),
+        'actions': np.array(action_),
+        'next_observations': np.array(next_obs_),
+        'rewards': np.array(reward_),
+        'terminals': np.array(done_),
+        "ends": np.array(end_)
+    }
+    
         
-def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False):
+def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False, terminate_on_end: bool=False, discard_last: bool=True, **kwargs):
     env = gym.make(task)
-    dataset = d4rl.qlearning_dataset(env)
+    dataset = qlearning_dataset(env, terminate_on_end=terminate_on_end, discard_last=discard_last, **kwargs)
     if normalize_reward:
         if "antmaze" in task:
-            dataset, _ = _antmaze_normalize_reward(dataset)
+            dataset, _ = antmaze_normalize_reward(dataset)
         elif "halfcheetah" in task or "hopper" in task or "walker2d" in task:
-            dataset, _ = _normalize_reward(dataset)
+            dataset, _ = mujoco_normalize_reward(dataset)
     if normalize_obs:
         dataset, info = _normalize_obs(dataset)
         from gym.wrappers.transform_observation import TransformObservation
         env = TransformObservation(env, lambda obs: (obs - info["obs_mean"])/info["obs_std"])
-    return env, D4RLDataset(dataset)
+    return env, dataset
         

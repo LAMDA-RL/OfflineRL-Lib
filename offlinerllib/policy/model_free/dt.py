@@ -1,9 +1,11 @@
-from typing import Optional, Any, Union
+from typing import Optional, Any, Union, Dict
+from operator import itemgetter
 import torch
 import torch.nn as nn
 
 from offlinerllib.policy import BasePolicy
 from offlinerllib.module.net.attention import Transformer
+from offlinerllib.utils.misc import convert_to_tensor
 
 class DecisionTransformerPolicy(BasePolicy):
     def __init__(
@@ -13,14 +15,16 @@ class DecisionTransformerPolicy(BasePolicy):
         state_dim: int, 
         action_dim: int, 
         seq_len: int, 
+        episode_len: int, 
         device: Union[str, torch.device] = "cpu"
     ) -> None:
-        
+        super().__init__()
         self.dt = dt
         self.dt_optim = dt_optim
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.seq_len = seq_len
+        self.episode_len = episode_len
         
         self.to(device)
 
@@ -53,6 +57,40 @@ class DecisionTransformerPolicy(BasePolicy):
         )
         
         return action_pred[0, -1].squeeze().cpu().numpy()
+    
+    def update(self, batch: Dict[str, Any], clip_grad: Optional[float]=None):
+        obss, actions, returns_to_go, timesteps, masks = \
+            itemgetter("observations", "actions", "returns", "timesteps", "masks")(batch)
+        obss = convert_to_tensor(obss, self.device)
+        actions = convert_to_tensor(actions, self.device)
+        returns_to_go = convert_to_tensor(returns_to_go, self.device)
+        timesteps = convert_to_tensor(timesteps, self.device)
+        masks = convert_to_tensor(masks, self.device)
+        key_padding_mask = ~masks.to(torch.bool)
+        
+        pred_action = self.dt(
+            states=obss, 
+            actions=actions, 
+            returns_to_go=returns_to_go, 
+            timesteps=timesteps, 
+            attention_mask=None,    # DT is causal and will handle causal masks itself
+            key_padding_mask=key_padding_mask
+        )
+        mse_loss = torch.nn.functional.mse_loss(pred_action, actions.detach(), reduction="none")
+        mse_loss = (mse_loss * masks).mean()
+        self.dt_optim.zero_grad()
+        mse_loss.backward()
+        if clip_grad is not None:
+            torch.nn.utils.clip_grad_norm_(self.dt.parameters(), clip_grad)
+        self.dt_optim.step()
+        
+        return {
+            "loss/mse_loss", mse_loss.item()
+        }
+        
+        
+        
+        
             
         
         
