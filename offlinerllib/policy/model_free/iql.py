@@ -1,16 +1,15 @@
+from copy import deepcopy
+from operator import itemgetter
+from typing import Dict, Tuple, Union
+
 import numpy as np
 import torch
 import torch.nn as nn
-import gym
-from operator import itemgetter
 
-from copy import deepcopy
-from typing import Dict, Union, Tuple
-
-from offlinerllib.policy import BasePolicy
-from offlinerllib.utils.misc import make_target
 from offlinerllib.module.actor import DeterministicActor, GaussianActor
+from offlinerllib.policy import BasePolicy
 from offlinerllib.utils.functional import expectile_regression
+from offlinerllib.utils.misc import convert_to_tensor, make_target
 
 
 class IQLPolicy(BasePolicy):
@@ -60,7 +59,7 @@ class IQLPolicy(BasePolicy):
     
     def update(self, batch: Dict) -> Dict[str, float]:
         for _key, _value in batch.items():
-            batch[_key] = torch.from_numpy(_value).to(self.device)
+            batch[_key] = convert_to_tensor(_value, self.device)
         obss, actions, next_obss, rewards, terminals = itemgetter("observations", "actions", "next_observations", "rewards", "terminals")(batch)
         
         # do the inference
@@ -91,7 +90,7 @@ class IQLPolicy(BasePolicy):
         if isinstance(self.actor, DeterministicActor):
             # use bc loss
             policy_out = torch.sum((self.actor.sample(obss)[0] - actions)**2, dim=1)
-        else:
+        elif isinstance(self.actor, GaussianActor):
             policy_out = - self.actor.evaluate(obss, actions)[0]
         actor_loss = (exp_advanrage * policy_out).mean()
 

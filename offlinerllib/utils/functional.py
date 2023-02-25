@@ -1,5 +1,6 @@
 import torch
 
+
 def grad_gumbel(x, clip_max=7):
     x = torch.clamp(x, None, clip_max)
     x_max = torch.max(x, dim=0)
@@ -28,3 +29,8 @@ def gumbel_rescale_loss(pred, target, alpha=1.0, clip_max=7.0):
 def expectile_regression(pred, target, expectile):
     diff = target - pred
     return torch.where(diff > 0, expectile, 1-expectile) * (diff**2)
+
+def discounted_cum_sum(seq, discount):
+    for t in reversed(range(len(seq)-1)):
+        seq[t] += discount * seq[t+1]
+    return seq

@@ -1,10 +1,10 @@
-from typing import Optional, Any, Dict, Sequence, Union
+import math
+from typing import Any, Dict, Optional, Sequence, Union
 
+import numpy as np
+import torch
 from torch.distributions import Normal
 
-import torch
-import math
-import numpy as np
 
 class TanhNormal(Normal):
     def __init__(self, 

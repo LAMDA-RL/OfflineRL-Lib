@@ -1,16 +1,16 @@
-import os
 import torch
 import wandb
 from tqdm import trange
-from offlinerllib.utils.d4rl import get_d4rl_dataset
-from offlinerllib.policy.model_free import XQLPolicy
-from offlinerllib.utils.eval import eval_offline_policy
-
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
-from offlinerllib.module.net.mlp import MLP
+
+from offlinerllib.buffer import D4RLTransitionBuffer
 from offlinerllib.module.actor import ClippedGaussianActor
-from offlinerllib.module.critic import DoubleCritic, Critic
+from offlinerllib.module.critic import Critic, DoubleCritic
+from offlinerllib.module.net.mlp import MLP
+from offlinerllib.policy.model_free import XQLPolicy
+from offlinerllib.utils.d4rl import get_d4rl_dataset
+from offlinerllib.utils.eval import eval_offline_policy
 
 args = parse_args()
 exp_name = "_".join([args.task, "seed"+str(args.seed)]) 
@@ -24,6 +24,8 @@ setup(args, logger)
 env, dataset = get_d4rl_dataset(args.task, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
+
+offline_buffer = D4RLTransitionBuffer(dataset)
 
 actor_backend = MLP(input_dim=obs_shape, hidden_dims=args.hidden_dims, dropout=args.dropout)
 actor = ClippedGaussianActor(
@@ -75,7 +77,7 @@ policy = XQLPolicy(
 policy.train()
 for i_epoch in trange(1, args.max_epoch+1):
     for i_step in range(args.step_per_epoch):
-        batch = dataset.sample(args.batch_size)
+        batch = offline_buffer.random_batch(args.batch_size)
         train_metrics = policy.update(batch)
         if actor_lr_scheduler is not None:
             actor_lr_scheduler.step()
