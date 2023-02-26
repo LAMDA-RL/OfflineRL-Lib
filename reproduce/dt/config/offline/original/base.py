@@ -27,7 +27,7 @@ log_interval = 10
 save_interval = 50
 warmup_steps = 10000
 
-name = "corl"
+name = "original"
 class wandb(NameSpace):
     entity = None
     project = None

@@ -27,7 +27,7 @@ normalize_reward = False
 
 do_reverse_update = False
 
-name = "original"
+name = "corl"
 class wandb(NameSpace):
     entity = None
     project = None
