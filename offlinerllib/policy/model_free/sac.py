@@ -152,6 +152,5 @@ class SACPolicy(BasePolicy):
         return metrics
 
     def _sync_weight(self) -> None:
-        for o, n in zip(self.critic_target.parameters(),
-                        self.critic.parameters()):
+        for o, n in zip(self.critic_target.parameters(), self.critic.parameters()):
             o.data.copy_(o.data * (1.0 - self._tau) + n.data * self._tau)
