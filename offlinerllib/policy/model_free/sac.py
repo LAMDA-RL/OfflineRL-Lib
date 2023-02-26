@@ -23,7 +23,7 @@ class SACPolicy(BasePolicy):
         actor_optim: torch.optim.Optimizer,
         critic_optim: torch.optim.Optimizer,
         tau: float = 0.005,
-        gamma: float = 0.99,
+        discount: float = 0.99,
         alpha: Union[float, Tuple[float, float]] = 0.2,
         device: Union[str, torch.device] = "cpu"
     ) -> None:
@@ -54,7 +54,7 @@ class SACPolicy(BasePolicy):
                                        requires_grad=False)
 
         self._tau = tau
-        self._gamma = gamma
+        self._discount = discount
 
         self.to(device)
 
@@ -97,7 +97,7 @@ class SACPolicy(BasePolicy):
             target_q = self.critic_target(
                 next_obss,
                 next_actions).min(0)[0] - self._alpha * next_logprobs
-            target_q = rewards + self._gamma * (1 - terminals) * target_q
+            target_q = rewards + self._discount * (1 - terminals) * target_q
         q_values = self.critic(obss, actions)
         
         critic_loss = (q_values - target_q).pow(2).sum(0).mean()

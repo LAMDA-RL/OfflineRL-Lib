@@ -22,12 +22,12 @@ class EDACPolicy(SACNPolicy):
         critic_optim: optim.Optimizer,
         tau: float = 0.005,
         eta: float = 1.0,
-        gamma: float = 0.99,
+        discount: float = 0.99,
         alpha: Union[float, Tuple[float, float]] = 0.2,
         do_reverse_update: bool = False,
         device: Union[str, torch.device] = "cpu"
     ) -> None:
-        super().__init__(actor, critic, actor_optim, critic_optim, tau, gamma,
+        super().__init__(actor, critic, actor_optim, critic_optim, tau, discount,
                          alpha, do_reverse_update, device)
         self.eta = eta
 

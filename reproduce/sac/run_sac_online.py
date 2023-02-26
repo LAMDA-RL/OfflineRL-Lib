@@ -50,7 +50,7 @@ policy = SACPolicy(
     actor=actor, critic=critic_q, 
     actor_optim=actor_optim, critic_optim=critic_q_optim, 
     tau=args.tau, 
-    gamma=args.gamma, 
+    discount=args.discount, 
     alpha=(-float(action_shape), args.alpha_lr) if args.auto_alpha else args.alpha, 
     device=args.device
 ).to(args.device)
