@@ -3,7 +3,7 @@ from UtilsRL.misc import NameSpace
 seed = 0
 task = None
 max_buffer_size = 1000000
-gamma = 0.99
+discount = 0.99
 tau = 0.005
 alpha = 0.2
 reward_scale = 1.0

@@ -83,7 +83,7 @@ class DecisionTransformerPolicy(BasePolicy):
         self.dt_optim.step()
         
         return {
-            "loss/mse_loss", mse_loss.item(), 
+            "loss/mse_loss": mse_loss.item(), 
         }
         
         

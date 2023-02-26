@@ -13,7 +13,7 @@ save_interval = 50
 max_action = 1.0
 
 hidden_dims = [256, 256, 256]
-gamma = 0.99
+discount = 0.99
 tau = 0.005
 eta = 1.0
 actor_lr = 3e-4
