@@ -7,6 +7,7 @@ OfflineRL-Lib provides unofficial and benchmarked PyTorch implementations for se
 - [Decision Transformer](https://arxiv.org/abs/2106.01345)
 - [EDAC](https://arxiv.org/abs/2110.01548)
 - [SAC-N](https://arxiv.org/abs/2110.01548)
+- [TD3-BC](https://arxiv.org/pdf/2106.06860.pdf)
 
 ## Benchmark Results
 When certain design choices, e.g. the choice of autodiff backend (jax or tf or pytorch) vary, the preference for each hyper-parameters may vary as well. Hence when benchmarking, we tested each algorithm's performace in three ways: 
