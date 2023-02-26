@@ -11,7 +11,7 @@ from offlinerllib.policy.model_free.sacn import SACNPolicy
 
 class EDACPolicy(SACNPolicy):
     """
-    Uncertainty-Based Offline Reinforcement Learning with Diversified Q-Ensemble <Ref:https://arxiv.org/abs/2110.01548>
+    Uncertainty-Based Offline Reinforcement Learning with Diversified Q-Ensemble <Ref: https://arxiv.org/abs/2110.01548>
     """
 
     def __init__(

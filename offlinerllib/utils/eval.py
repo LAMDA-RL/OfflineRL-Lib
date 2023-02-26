@@ -78,7 +78,7 @@ def eval_decision_transformer(
                 episode_length += 1
                 
                 if done:
-                    episode_returns.append(episode_return)
+                    episode_returns.append(score_func(episode_return)*100)
                     episode_lengths.append(episode_length)
                     break
                 
@@ -86,10 +86,10 @@ def eval_decision_transformer(
         episode_returns = np.asarray(episode_returns)
         episode_lengths = np.asarray(episode_lengths)
         return {
-            "normalized_score_mean/target{:.1f}".format(target_return): episode_returns.mean(), 
-            "normalized_score_std/target{:.1f}".format(target_return): episode_returns.std(), 
-            "length_mean/target{:.1f}".format(target_return): episode_lengths.mean(), 
-            "length_std/target{:.1f}".format(target_return): episode_lengths.std()
+            "normalized_score_mean_target{:.1f}".format(target_return): episode_returns.mean(), 
+            "normalized_score_std_target{:.1f}".format(target_return): episode_returns.std(), 
+            "length_mean_target{:.1f}".format(target_return): episode_lengths.mean(), 
+            "length_std_target{:.1f}".format(target_return): episode_lengths.std()
         }
     
     ret = {}
