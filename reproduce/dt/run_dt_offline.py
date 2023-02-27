@@ -20,7 +20,7 @@ logger = CompositeLogger(log_path=f"./log/dt/offline/{args.name}", name=exp_name
 })
 setup(args, logger)
 
-env, dataset = get_d4rl_dataset(args.task, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
+env, dataset = get_d4rl_dataset(args.task, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward, discard_last=False)
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
 

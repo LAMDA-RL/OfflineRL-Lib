@@ -80,18 +80,22 @@ def qlearning_dataset(env, dataset=None, terminate_on_end: bool=False, discard_l
         reward = dataset['rewards'][i].astype(np.float32)
         done_bool = bool(dataset['terminals'][i])
         end = False
+        episode_step += 1
 
         if use_timeouts:
             final_timestep = dataset['timeouts'][i]
         else:
-            final_timestep = (episode_step == env._max_episode_steps - 1)
-        if (not terminate_on_end) and final_timestep:
-            # Skip this transition and don't apply terminals on the last step of an episode
-            episode_step = 0
-            if discard_last:
-                end_[-1] = True   # if discard, then the last timestep will be end
-                continue
-        if done_bool or final_timestep:
+            final_timestep = (episode_step == env._max_episode_steps)
+        if final_timestep:
+            if not done_bool:
+                if not terminate_on_end:
+                    if discard_last:
+                        episode_step = 0
+                        end_[-1] = True
+                        continue
+                else: 
+                    done_bool = True
+        if final_timestep or done_bool:
             end = True
             episode_step = 0
 
@@ -101,10 +105,8 @@ def qlearning_dataset(env, dataset=None, terminate_on_end: bool=False, discard_l
         reward_.append(reward)
         done_.append(done_bool)
         end_.append(end)
-        episode_step += 1
     
     end_[-1] = True   # the last traj will be ended whatsoever
-
     return {
         'observations': np.array(obs_),
         'actions': np.array(action_),

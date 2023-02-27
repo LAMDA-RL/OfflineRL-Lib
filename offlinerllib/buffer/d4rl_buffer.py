@@ -66,7 +66,6 @@ class D4RLTrajectoryBuffer(Buffer, IterableDataset):
         traj_start = 0
         for i in range(dataset["rewards"].shape[0]):
             if dataset["ends"][i]:
-                assert dataset["terminals"][i] or i+1-traj_start == 999 or i==dataset["rewards"].shape[0]-1
                 episode_data = {k: v[traj_start:i+1] for k, v in converted_dataset.items()}
                 episode_data["returns"] = discounted_cum_sum(episode_data["rewards"], discount=discount) / return_scale
                 traj.append(episode_data)
