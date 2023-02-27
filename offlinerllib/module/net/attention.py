@@ -60,7 +60,7 @@ class TransformerBlock(nn.Module):
             attn_mask=attention_mask, 
             key_padding_mask=key_padding_mask
         )[0]
-        residual = residual + attn_output
+        residual = residual + attn_output  # check: we escape the dropout
         residual = residual + self.ff(self.ln2(residual))
         return residual
         
@@ -121,7 +121,7 @@ class Transformer(nn.Module):
             inputs = self.input_embed(inputs)
             if timesteps is not None:
                 inputs = inputs + self.pos_embed(timesteps)
-        inputs = self.embed_dropout(inputs)
+        inputs = self.embed_dropout(inputs)  # check: we escape the layer norm
         for i, block in enumerate(self.blocks):
             inputs = block(inputs, attention_mask=mask, key_padding_mask=key_padding_mask)
         inputs = self.out_ln(inputs)
