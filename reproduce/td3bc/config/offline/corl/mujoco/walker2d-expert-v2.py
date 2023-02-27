@@ -1,4 +1,4 @@
-from reproduce.td3bc.config.offline.original.base import *
+from reproduce.td3bc.config.offline.corl.base import *
 
 task = "walker2d-expert-v2"
 

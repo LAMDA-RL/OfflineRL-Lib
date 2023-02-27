@@ -1,4 +1,4 @@
-from reproduce.edac.config.offline.corl.base import *
+from reproduce.edac.config.offline.original.base import *
 
 task = "hopper-medium-expert-v2"
 num_critics = 50

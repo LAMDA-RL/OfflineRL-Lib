@@ -1,4 +1,4 @@
-from reproduce.td3bc.config.offline.original.base import *
+from reproduce.td3bc.config.offline.corl.base import *
 
 task = "hopper-medium-replay-v2"
 

@@ -1,4 +1,4 @@
-from reproduce.dt.config.offline.corl.base import *
+from reproduce.dt.config.offline.original.base import *
 
 batch_size = 64
 lr = 1e-4

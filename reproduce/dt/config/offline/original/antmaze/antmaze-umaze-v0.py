@@ -1,4 +1,4 @@
-from reproduce.dt.config.offline.corl.antmaze.base import *
+from reproduce.dt.config.offline.original.antmaze.base import *
 
 task = "antmaze-umaze-v0"
 target_return = [0.5, 1.0]
