@@ -4,10 +4,18 @@
 OfflineRL-Lib provides unofficial and benchmarked PyTorch implementations for selected OfflineRL algorithms, including: 
 - [Extreme Q-Learning](https://arxiv.org/abs/2301.02328)
 - [Implicit Q-Learning](https://arxiv.org/abs/2110.06169)
+
+still benchmarking ... 
 - [Decision Transformer](https://arxiv.org/abs/2106.01345)
 - [EDAC](https://arxiv.org/abs/2110.01548)
 - [SAC-N](https://arxiv.org/abs/2110.01548)
 - [TD3-BC](https://arxiv.org/pdf/2106.06860.pdf)
+
+under developing (model based algorithms) ...
+- [MOPO](https://arxiv.org/abs/2005.13239)
+- [MAPLE](https://proceedings.neurips.cc/paper/2021/file/470e7a4f017a5476afb7eeb3f8b96f9b-Paper.pdf)
+- [RAMBO](https://arxiv.org/abs/2204.12581)
+
 
 ## Benchmark Results
 When certain design choices, e.g. the choice of autodiff backend (jax or tf or pytorch) vary, the preference for each hyper-parameters may vary as well. Hence when benchmarking, we tested each algorithm's performace in three ways: 
@@ -15,7 +23,7 @@ When certain design choices, e.g. the choice of autodiff backend (jax or tf or p
 + **OfflineRL-Lib (with paper args)**: the performance obtained by using OfflineRL-Lib implementation and the configs in paper or original implementations;
 + **OfflineRL-Lib (with CORL args)**: the performance obtained by using OfflineRL-Lib implementation and the configs in [CORL](https://github.com/tinkoff-ai/CORL). 
 
-> For the last option, arguments are directly borrowed from CORL. CORL provides simplified single-file implementations of these algorithms as well as their finetuned hyper-parameters based on pytorch, please check [their repo](https://github.com/tinkoff-ai/COR) as well. 
+> For the last option, arguments are directly borrowed from CORL. CORL provides simplified single-file implementations of these algorithms as well as their finetuned hyper-parameters based on pytorch, please check [their repo](https://github.com/tinkoff-ai/CORL) as well. 
 
 ### XQL [:page_facing_up:](https://arxiv.org/abs/2301.02328) [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/XQL-Offline)
 
