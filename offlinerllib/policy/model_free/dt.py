@@ -41,23 +41,25 @@ class DecisionTransformerPolicy(BasePolicy):
         
         B, L, *_ = states.shape
         if self.seq_len > L:
-            states = torch.cat([torch.zeros(B, self.seq_len-L, self.state_dim), states], dim=1)
-            actions = torch.cat([torch.zeros(B, self.seq_len-L, self.action_dim), actions], dim=1)
-            returns_to_go = torch.cat([torch.zeros(B, self.seq_len-L, 1), returns_to_go], dim=1)
-            timesteps = torch.cat([torch.zeros(B, self.seq_len-L, dtype=torch.int64), timesteps], dim=1)
-        states, actions, returns_to_go, timesteps = \
-            states.to(self.device), actions.to(self.device), returns_to_go.to(self.device), timesteps.to(self.device)
-        
+            states = torch.cat([states, torch.zeros(B, self.seq_len-L, self.state_dim)], dim=1)
+            actions = torch.cat([actions, torch.zeros(B, self.seq_len-L, self.action_dim)], dim=1)
+            returns_to_go = torch.cat([returns_to_go, torch.zeros(B, self.seq_len-L, 1)], dim=1)
+            timesteps = torch.cat([timesteps, torch.zeros(B, self.seq_len-L, dtype=torch.int64)], dim=1)
+            key_padding_mask = torch.cat([torch.zeros(B, L).bool(), torch.ones(B, self.seq_len-L).bool()], dim=1)
+        else:
+            key_padding_mask = torch.zeros(B, L).bool()
+        states, actions, returns_to_go, timesteps, key_padding_mask = \
+            states.to(self.device), actions.to(self.device), returns_to_go.to(self.device), timesteps.to(self.device), key_padding_mask.to(self.device)
         action_pred = self.dt(
             states=states, 
             actions=actions, 
             returns_to_go=returns_to_go, 
             timesteps=timesteps, 
             attention_mask=None, 
-            key_padding_mask=None   # we don't need to pass key_padding_mask as all the keys are valid
+            key_padding_mask=key_padding_mask
         )
         
-        return action_pred[0, -1].squeeze().cpu().numpy()
+        return action_pred[0, L-1].squeeze().cpu().numpy() # 
     
     def update(self, batch: Dict[str, Any], clip_grad: Optional[float]=None):
         for _key, _value in batch.items():

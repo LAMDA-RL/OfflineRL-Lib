@@ -73,6 +73,7 @@ for i_epoch in trange(1, args.max_epoch+1):
     if i_epoch % args.log_interval == 0:
         logger.log_scalars("", train_metrics, step=i_epoch)
         logger.log_scalars("Eval", eval_metrics, step=i_epoch)
+        logger.log_scalar("misc/learning_rate", dt_optim_scheduler.get_last_lr()[0], step=i_epoch)
         
     if i_epoch % args.save_interval == 0:
         logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/dt/offline/{args.name}/{args.task}/seed{args.seed}/policy/")
