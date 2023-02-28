@@ -40,18 +40,12 @@ class SACPolicy(BasePolicy):
         if isinstance(alpha, tuple):
             self._is_auto_alpha = True
             target_entropy, alpha_lr = alpha
-            self._log_alpha = nn.Parameter(torch.tensor([0.0],
-                                                        dtype=torch.float32,
-                                                        device=device),
-                                           requires_grad=True)
+            self._log_alpha = nn.Parameter(torch.tensor([0.0], dtype=torch.float32, device=device), requires_grad=True)
             self._target_entropy = target_entropy
             self.alpha_optim = torch.optim.Adam([self._log_alpha], lr=alpha_lr)
             self._alpha = self._log_alpha.detach().exp()
         else:
-            self._alpha = torch.tensor([alpha],
-                                       dtype=torch.float32,
-                                       device=device,
-                                       requires_grad=False)
+            self._alpha = torch.tensor([alpha], dtype=torch.float32, device=device, requires_grad=False)
 
         self._tau = tau
         self._discount = discount

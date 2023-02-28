@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 import d4rl
+import torch
 
 def antmaze_normalize_reward(dataset):
     dataset["rewards"] -= 1.0
@@ -131,3 +132,90 @@ def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False, terminat
         env = TransformObservation(env, lambda obs: (obs - info["obs_mean"])/info["obs_std"])
     return env, dataset
         
+
+# below is for dataset generation
+@torch.no_grad()
+def gen_d4rl_dataset(task, policy, num_data, seed=0, random=False, normalize_reward=False, normalize_obs=False, terminate_on_end=False, discard_last=True, **kwargs):
+    if not hasattr(policy, "actor"):
+        raise AttributeError("Policy does not have actor member")
+    env = gym.make(task)
+    dataset = qlearning_dataset(env, terminate_on_end=terminate_on_end, discard_last=discard_last, **kwargs)
+    if normalize_reward:
+        if "antmaze" in task:
+            dataset, _ = antmaze_normalize_reward(dataset)
+        elif "halfcheetah" in task or "hopper" in task or "walker2d" in task:
+            dataset, _ = mujoco_normalize_reward(dataset)
+    if normalize_obs:
+        dataset, info = _normalize_obs(dataset)
+        obs_mean, obs_std = info["obs_mean"], info["obs_std"]
+        
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    
+    def init_dict():
+        return dict(
+        observations=[], 
+        next_observatons=[], 
+        actions=[], 
+        rewards=[], 
+        terminals=[], 
+        timeouts=[], 
+        logprobs=[], 
+        qpos=[], 
+        qvel=[]
+    )
+    
+    data = init_dict()
+    traj_data = init_dict()
+    
+    obs, done, return_, length = env.reset(seed=seed), 0, 0
+    while len(data["rewards"] < num_data):
+        if random:
+            action = env.action_space.sample()
+            logprob = np.log(1.0 / np.prod(env.action_space.high - env.action_space.low))
+        else:
+            obs_torch = torch.from_numpy(obs).float().to(policy.device)
+            action, logprob, *_ = policy.actor.sample(obs_torch, determinisitc=False)
+            action = action.squeeze().numpy()
+            logprob = logprob.squeeze().numpy()
+        # mujoco only
+        qpos, qvel = env.sim.data.qpos.ravel().copy(), env.sim.data.qvel.ravel().copy()
+        ns, rew, done, infos = env.step(action)
+        return_ += rew
+        
+        length += 1
+        timeout = False
+        terminal = False
+        
+        if length == env._max_episode_steps:
+            timeout = True
+        elif done:
+            terminal = True
+            
+        for _key, _value in {
+            "observations": obs, 
+            "actions": action, 
+            "next_observations": ns, 
+            "rewards": rew, 
+            "terminals": terminal, 
+            "timeouts": timeout, 
+            "infos/action_log_probs": logprob, 
+            "infos/qpos": qpos, 
+            "infos/qvel": qvel
+        }.items():
+            traj_data[_key].append(_value)
+        obs = ns
+        if terminal or timeout:
+            print(f"finished trajectory, len={length}, return={return_}")
+            s = env.reset()
+            length = return_ = 0
+            for k in data:
+                data[k].extend(traj_data[k])
+            traj_data = init_dict()
+            
+    new_data = {_key: np.asarray(_value).astype(np.float32) for _key, _value in data.items()}
+    for k in new_data:
+        new_data[k] = new_data[k][:num_data]
+    return new_data
+
+    
