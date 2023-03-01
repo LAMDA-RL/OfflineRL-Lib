@@ -575,13 +575,15 @@ class ClippedGaussianActor(GaussianActor):
             action, logprob = dist.mean, None
         elif self.reparameterize:
             action = dist.rsample()
-            logprob = dist.log_prob(action).sum(-1, keepdim=True)
+            # logprob = dist.log_prob(action).sum(-1, keepdim=True)
         else:
             action = dist.sample()
-            logprob = dist.log_prob(action).sum(-1, keepdim=True)
+            # logprob = dist.log_prob(action).sum(-1, keepdim=True)
+        action = torch.clip(action, min=-1.0, max=1.0)
+        logprob = dist.log_prob(action)
         
         info = {"mean": mean, "logstd": logstd} if return_mean_logstd else {}
-        return torch.clip(action, min=-1.0, max=1.0), logprob, info
+        return action, logprob, info
             
     def evaluate(self, obs: torch.Tensor, action: torch.Tensor, return_dist: bool=False, *args, **kwargs) -> Tuple[torch.Tensor, Dict]:
         """Evaluate the action at given obs. 
