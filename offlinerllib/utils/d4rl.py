@@ -154,31 +154,31 @@ def gen_d4rl_dataset(task, policy, num_data, policy_is_online=False, random=Fals
     torch.manual_seed(seed)
     
     def init_dict():
-        return dict(
-        observations=[], 
-        next_observatons=[], 
-        actions=[], 
-        rewards=[], 
-        terminals=[], 
-        timeouts=[], 
-        logprobs=[], 
-        qpos=[], 
-        qvel=[]
-    )
+        return {
+            "observations": [], 
+            "actions": [], 
+            "next_observations": [], 
+            "rewards": [], 
+            "terminals": [], 
+            "timeouts": [], 
+            "infos/action_log_probs": [], 
+            "infos/qpos": [], 
+            "infos/qvel": []
+        }
     
     data = init_dict()
     traj_data = init_dict()
     
-    obs, done, return_, length = env.reset(seed=seed), 0, 0
-    while len(data["rewards"] < num_data):
+    obs, done, return_, length = env.reset(seed=seed), 0, 0, 0
+    while len(data["rewards"]) < num_data:
         if random:
             action = env.action_space.sample()
             logprob = np.log(1.0 / np.prod(env.action_space.high - env.action_space.low))
         else:
-            obs_torch = torch.from_numpy(obs).float().to(policy.device)
+            obs_torch = torch.from_numpy(transform_fn(obs)).float().to(policy.device)
             action, logprob, *_ = policy.actor.sample(obs_torch, determinisitc=False)
-            action = action.squeeze().numpy()
-            logprob = logprob.squeeze().numpy()
+            action = action.squeeze().cpu().numpy()
+            logprob = logprob.squeeze().cpu().numpy()
         # mujoco only
         qpos, qvel = env.sim.data.qpos.ravel().copy(), env.sim.data.qvel.ravel().copy()
         ns, rew, done, infos = env.step(action)
