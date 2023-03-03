@@ -53,6 +53,7 @@ policy = DecisionTransformerPolicy(
 
 
 # main loop
+policy.train()
 trainloader = DataLoader(
     offline_buffer, 
     batch_size=args.batch_size, 

@@ -6,3 +6,4 @@
 scripts/
 out/
 wandb
+tests/

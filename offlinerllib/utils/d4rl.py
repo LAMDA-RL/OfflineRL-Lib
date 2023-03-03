@@ -135,19 +135,20 @@ def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False, terminat
 
 # below is for dataset generation
 @torch.no_grad()
-def gen_d4rl_dataset(task, policy, num_data, seed=0, random=False, normalize_reward=False, normalize_obs=False, terminate_on_end=False, discard_last=True, **kwargs):
+def gen_d4rl_dataset(task, policy, num_data, policy_is_online=False, random=False, normalize_obs: bool=False, seed=0, **d4rl_kwargs):
     if not hasattr(policy, "actor"):
         raise AttributeError("Policy does not have actor member")
-    env = gym.make(task)
-    dataset = qlearning_dataset(env, terminate_on_end=terminate_on_end, discard_last=discard_last, **kwargs)
-    if normalize_reward:
-        if "antmaze" in task:
-            dataset, _ = antmaze_normalize_reward(dataset)
-        elif "halfcheetah" in task or "hopper" in task or "walker2d" in task:
-            dataset, _ = mujoco_normalize_reward(dataset)
-    if normalize_obs:
-        dataset, info = _normalize_obs(dataset)
-        obs_mean, obs_std = info["obs_mean"], info["obs_std"]
+    if policy_is_online:
+        env = gym.make(task)
+        transform_fn = lambda obs: obs
+    else:
+        env = gym.make(task)
+        dataset = qlearning_dataset(env, **d4rl_kwargs)
+        if normalize_obs:
+            dataset, info = _normalize_obs(dataset)
+            transform_fn = lambda obs: (obs - info["obs_mean"]) / (info["obs_std"] + 1e-3)
+        else:
+            transform_fn = lambda obs: obs
         
     np.random.seed(seed)
     torch.manual_seed(seed)
