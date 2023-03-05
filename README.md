@@ -19,7 +19,7 @@ under developing (model based algorithms) ...
 
 
 ## Benchmark Results
-See [reproduce/benchmark_result.md](https://github.com/typoverflow/blob/master/benchmark_result.md) for details. 
+See [reproduce/benchmark_result.md](https://github.com/typoverflow/OfflineRL-Lib/blob/master/reproduce/benchmark_result.md) for details. 
 
 ## Citing OfflineRL-Lib
 If you use OfflineRL-Lib in your work, please use the following bibtex
