@@ -6,11 +6,11 @@ OfflineRL-Lib provides unofficial and benchmarked PyTorch implementations for se
 - [Implicit Q-Learning](https://arxiv.org/abs/2110.06169)
 - [Decision Transformer](https://arxiv.org/abs/2106.01345)
 - [AWAC](https://arxiv.org/abs/2006.09359)
+- [TD3-BC](https://arxiv.org/pdf/2106.06860.pdf)
 
 still benchmarking ... 
 - [EDAC](https://arxiv.org/abs/2110.01548)
 - [SAC-N](https://arxiv.org/abs/2110.01548)
-- [TD3-BC](https://arxiv.org/pdf/2106.06860.pdf)
 
 under developing (model based algorithms) ...
 - [MOPO](https://arxiv.org/abs/2005.13239)
