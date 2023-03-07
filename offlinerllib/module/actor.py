@@ -580,7 +580,7 @@ class ClippedGaussianActor(GaussianActor):
             action = dist.sample()
             # logprob = dist.log_prob(action).sum(-1, keepdim=True)
         action = torch.clip(action, min=-1.0, max=1.0)
-        logprob = dist.log_prob(action)
+        logprob = dist.log_prob(action).sum(-1, keepdim=True)
         
         info = {"mean": mean, "logstd": logstd} if return_mean_logstd else {}
         return action, logprob, info
