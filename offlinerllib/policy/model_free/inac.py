@@ -93,6 +93,8 @@ class InACPolicy(BasePolicy):
         metrics.update(actor_metrics)
 
         self._sync_weight()
+
+        return metrics
         
     def behavior_loss(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         obss, actions = itemgetter("observations", "actions")(batch)
