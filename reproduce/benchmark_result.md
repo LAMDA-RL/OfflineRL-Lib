@@ -259,3 +259,59 @@ Note that
         </tr>
     </tbody>
 </table>
+
+## TD3BC [:page_facing_up:](https://arxiv.org/abs/2106.06860) [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/TD3BC-Offline)
+Note that
++ For each run, we record the averaged (over 5 independent runs) best score for the last two checkpoints, and report the higher number between them. We think limited model selection (only two deployments) is permitted; however if you need to evaluate the models otherwisely, please refer to the wandb logs. 
+
+<table>
+    <thead>
+        <tr>
+            <th>Task</th>
+            <th>Dataset Quality</th>
+            <th>Paper Performance<br></th>
+            <th>OfflineRL-Lib<br>(with CORL args)
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td rowspan=4>halfcheetah</td>
+            <td>random-v2</td><td>10.2±1.3</td><td>11.5±1.0</td>
+        </tr>
+        <tr>
+            <td>medium-v2</td><td>41.3±0.5</td><td>48.5±0.4</td>
+        </tr>
+        <tr>
+            <td>medium-replay-v2</td><td>43.3±0.9</td><td>44.7±0.7</td>
+        </tr>
+        <tr>
+            <td>medium-expert-v2</td><td>97.9±4.4</td><td>91.7±3.2</td>
+        </tr>
+        <tr>
+            <td rowspan=4>hopper</td>
+            <td>random-v2</td><td>11.0±0.2</td><td>10.3±2.8</td>
+        </tr>
+        <tr>
+            <td>medium-v2</td><td>99.5±1.0</td><td>61.8±1.6</td>
+        </tr>
+        <tr>
+            <td>medium-replay-v2</td><td>31.4±3.0</td><td>73.5±20.4</td>
+        </tr>
+        <tr>
+            <td>medium-expert-v2</td><td>112.2±0.2</td><td>103.4±8.9</td>
+        </tr>
+        <tr>
+            <td rowspan=4>walker2d</td>
+            <td>random-v2</td><td>1.4±1.6</td><td>1.95±2.6</td>
+        </tr>
+        <tr>
+            <td>medium-v2</td><td>79.7±1.8</td><td>84.3±1.4</td>
+        </tr>
+        <tr>
+            <td>medium-replay-v2</td><td>25.2±5.1</td><td>84.8±4.2</td>
+        </tr>
+        <tr>
+            <td>medium-expert-v2</td><td>101.1±9.3</td><td>110.4±0.57</td>
+        </tr>
+    </tbody>
+</table>
