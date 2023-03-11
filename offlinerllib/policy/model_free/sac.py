@@ -66,9 +66,8 @@ class SACPolicy(BasePolicy):
         self,
         batch: Dict[str, torch.Tensor]
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
-        obss, actions, next_obss, rewards, terminals = itemgetter(
-            "observations", "actions", "next_observations", "rewards",
-            "terminals")(batch)
+        obss, actions, next_obss, rewards, terminals = \
+            itemgetter("observations", "actions", "next_observations", "rewards","terminals")(batch)
         new_actions, new_logprobs, _ = self.actor.sample(obss)
         q_values = self.critic(obss, new_actions)
         if len(q_values.shape) == 2:
@@ -83,14 +82,11 @@ class SACPolicy(BasePolicy):
         self, 
         batch: Dict[str, torch.Tensor]
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
-        obss, actions, next_obss, rewards, terminals = itemgetter(
-            "observations", "actions", "next_observations", "rewards",
-            "terminals")(batch)
+        obss, actions, next_obss, rewards, terminals = \
+            itemgetter("observations", "actions", "next_observations", "rewards","terminals")(batch)
         with torch.no_grad():
             next_actions, next_logprobs, _ = self.actor.sample(next_obss)
-            target_q = self.critic_target(
-                next_obss,
-                next_actions).min(0)[0] - self._alpha * next_logprobs
+            target_q = self.critic_target(next_obss, next_actions).min(0)[0] - self._alpha * next_logprobs
             target_q = rewards + self._discount * (1 - terminals) * target_q
         q_values = self.critic(obss, actions)
         
