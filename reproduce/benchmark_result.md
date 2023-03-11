@@ -6,6 +6,63 @@ When certain design choices, e.g. the choice of autodiff backend (jax or tf or p
 
 > For the last option, arguments are directly borrowed from CORL. CORL provides simplified single-file implementations of these algorithms as well as their finetuned hyper-parameters based on pytorch, please check [their repo](https://github.com/tinkoff-ai/CORL) as well. 
 
+## InAC [:page_facing_up:](https://arxiv.org/abs/2302.14372) [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/InAC-Offline)
+Note that:
++ For each run, we record the averaged (over 5 independent runs) best score for the last two checkpoints, and report the higher number between them. We think limited model selection (only two deployments) is permitted; however if you need to evaluate the models otherwisely, please refer to the wandb logs. 
+<table>
+    <thead>
+        <tr>
+            <th>Task</th>
+            <th>Dataset Quality</th>
+            <th>Paper Performance</th>
+            <th>OfflineRL-Lib<br>(paper args)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td rowspan=4>halfcheetah</td>
+            <td>medium-v2</td><td>48.30±0.02</td><td>47.31±1.03</td>
+        </tr>
+        <tr>
+            <td>medium-replay-v2</td><td>44.30±0.02</td><td>43.73±1.19</td>
+        </tr>
+        <tr>
+            <td>medium-expert-v2</td><td>83.50±0.34</td><td>92.04±1.14</td>
+        </tr>
+        <tr>
+            <td>expert-v2</td><td>93.60±0.04</td><td>94.26±1.41</td>
+        </tr>
+        <tr>
+            <td rowspan=4>hopper</td>
+            <td>medium-v2</td><td>60.3±0.20</td><td>76.97±11.32</td>
+        </tr>
+        <tr>
+            <td>medium-replay-v2</td><td>92.10±0.38</td><td>84.99±6.19</td>
+        </tr>
+        <tr>
+            <td>medium-expert-v2</td><td>93.80±0.69</td><td>101.96±7.63</td>
+        </tr>
+        <tr>
+            <td>expert-v2</td><td>103.40±0.38</td><td>100.42±20.19</td>
+        </tr>
+        <tr>
+            <td rowspan=4>walker2d</td>
+            <td>medium-v2</td><td>71.1±0.53</td><td>79.65±9.24</td>
+        </tr>
+        <tr>
+            <td>medium-replay-v2</td><td>69.80±0.57</td><td>77.55±2.26</td>
+        </tr>
+        <tr>
+            <td>medium-expert-v2</td><td>109.00±0.10</td><td>110.84±0.48</td>
+        </tr>
+        <tr>
+            <td>expert-v2</td><td>110.60±0.09</td><td>111.38±1.27</td>
+        </tr>
+    </tbody>
+</table>
+
+
+
 ## XQL [:page_facing_up:](https://arxiv.org/abs/2301.02328) [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/XQL-Offline)
 Note that:
 + For each run, we record the averaged (over 5 independent runs) best score for the last two checkpoints, and report the higher number between them. We think limited model selection (only two deployments) is permitted; however if you need to evaluate the models otherwisely, please refer to the wandb logs. 
