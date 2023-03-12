@@ -2,10 +2,11 @@
 > 🚧 This repo is not ready for release, benchmarking is ongoing. 🚧
 
 OfflineRL-Lib provides unofficial and benchmarked PyTorch implementations for selected OfflineRL algorithms, including: 
-- [Extreme Q-Learning](https://arxiv.org/abs/2301.02328)
-- [Implicit Q-Learning](https://arxiv.org/abs/2110.06169)
-- [Decision Transformer](https://arxiv.org/abs/2106.01345)
-- [AWAC](https://arxiv.org/abs/2006.09359)
+- [In-Sample Actor Critic (InAC)](https://arxiv.org/abs/2302.14372)
+- [Extreme Q-Learning (XQL)](https://arxiv.org/abs/2301.02328)
+- [Implicit Q-Learning (IQL)](https://arxiv.org/abs/2110.06169)
+- [Decision Transformer (DT)](https://arxiv.org/abs/2106.01345)
+- [Advantage-Weighted Actor Critic (AWAC)](https://arxiv.org/abs/2006.09359)
 - [TD3-BC](https://arxiv.org/pdf/2106.06860.pdf)
 
 still benchmarking ... 
