@@ -17,6 +17,8 @@ hidden_dims = [256, 256]
 discount = 0.99
 tau = 0.005
 
+discard_last = True
+
 name = "original"
 class wandb(NameSpace):
     entity = None
