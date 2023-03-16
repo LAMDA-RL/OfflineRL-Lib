@@ -1,11 +1,14 @@
-
-
+import os
 import pathlib
 from setuptools import setup, find_packages
 
+def get_version() -> str:
+    init = open(os.path.join("offlinerllib", "__init__.py"), "r").read().split()
+    return init[init.index("__version__") + 2][1:-1]
+
 ROOT_DIR = pathlib.Path(__file__).parent
 README = (ROOT_DIR / "README.md").read_text()
-VERSION = (ROOT_DIR / "VERSION").read_text()
+VERSION = get_version()
 
 def get_install_requires():
     return [
