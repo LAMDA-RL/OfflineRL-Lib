@@ -3,6 +3,8 @@ import numpy as np
 import d4rl
 import torch
 
+from offlinerllib.utils.terminal import get_termination_fn
+
 def antmaze_normalize_reward(dataset):
     dataset["rewards"] -= 1.0
     return dataset, {}
@@ -118,7 +120,7 @@ def qlearning_dataset(env, dataset=None, terminate_on_end: bool=False, discard_l
     }
     
         
-def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False, terminate_on_end: bool=False, discard_last: bool=True, **kwargs):
+def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False, terminate_on_end: bool=False, discard_last: bool=True, return_termination_fn=False, **kwargs):
     env = gym.make(task)
     dataset = qlearning_dataset(env, terminate_on_end=terminate_on_end, discard_last=discard_last, **kwargs)
     if normalize_reward:
@@ -126,11 +128,16 @@ def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False, terminat
             dataset, _ = antmaze_normalize_reward(dataset)
         elif "halfcheetah" in task or "hopper" in task or "walker2d" in task:
             dataset, _ = mujoco_normalize_reward(dataset)
+    termination_fn = get_termination_fn(task)
     if normalize_obs:
         dataset, info = _normalize_obs(dataset)
         from gym.wrappers.transform_observation import TransformObservation
         env = TransformObservation(env, lambda obs: (obs - info["obs_mean"])/info["obs_std"])
-    return env, dataset
+        termination_fn = get_termination_fn(task, info["obs_mean"], info["obs_std"])
+    if return_termination_fn:
+        return env, dataset, termination_fn
+    else:
+        return env, dataset
         
 
 # below is for dataset generation
