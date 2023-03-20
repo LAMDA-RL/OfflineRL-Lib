@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional, Union
 
 import torch
 
-from offlinerllib.module.net.attention import Transformer
+from offlinerllib.module.net.attention.dt import DecisionTransformer
 from offlinerllib.policy import BasePolicy
 from offlinerllib.utils.misc import convert_to_tensor
 
@@ -14,7 +14,7 @@ class DecisionTransformerPolicy(BasePolicy):
     """
     def __init__(
         self, 
-        dt: Transformer, 
+        dt: DecisionTransformer, 
         dt_optim: torch.optim, 
         state_dim: int, 
         action_dim: int, 
