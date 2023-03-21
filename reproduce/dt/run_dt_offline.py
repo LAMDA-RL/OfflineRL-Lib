@@ -6,7 +6,7 @@ from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
 
 from offlinerllib.buffer import D4RLTrajectoryBuffer
-from offlinerllib.module.net.attention import DecisionTransformer
+from offlinerllib.module.net.attention.dt import DecisionTransformer
 from offlinerllib.policy.model_free import DecisionTransformerPolicy
 from offlinerllib.utils.d4rl import get_d4rl_dataset
 from offlinerllib.utils.eval import eval_decision_transformer
@@ -38,7 +38,11 @@ dt = DecisionTransformer(
     residual_dropout=args.residual_dropout, 
     embed_dropout=args.embed_dropout
 ).to(args.device)
-dt_optim = torch.optim.AdamW(dt.parameters(), lr=args.lr, weight_decay=args.weight_decay, betas=args.betas)
+decay, no_decay = dt.configure_params()
+dt_optim = torch.optim.AdamW([
+    {"params": decay, "weight_decay": args.weight_decay}, 
+    {"params": no_decay, "weight_decay": 0.0}
+], lr=args.lr, betas=args.betas)
 dt_optim_scheduler = torch.optim.lr_scheduler.LambdaLR(dt_optim, lambda step: min((step+1)/args.warmup_steps, 1))
 
 policy = DecisionTransformerPolicy(
