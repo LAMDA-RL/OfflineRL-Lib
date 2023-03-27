@@ -36,6 +36,7 @@ class DecisionTransformer(GPT2):
         self.act_embed = nn.Linear(action_dim, embed_dim)
         self.ret_embed = nn.Linear(1, embed_dim)
         
+        self.embed_ln = nn.LayerNorm(embed_dim)
         self.action_head = nn.Sequential(nn.Linear(embed_dim, action_dim), nn.Tanh())
 
     def forward(
@@ -57,6 +58,7 @@ class DecisionTransformer(GPT2):
             key_padding_mask = torch.stack([key_padding_mask, key_padding_mask, key_padding_mask], dim=2).reshape(B, 3*L)
         
         stacked_input = torch.stack([return_embedding, state_embedding, action_embedding], dim=2).reshape(B, 3*L, state_embedding.shape[-1])
+        stacked_input = self.embed_ln(stacked_input)
         out = super().forward(
             inputs=stacked_input, 
             timesteps=None, 
