@@ -6,6 +6,7 @@ from tqdm import trange
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
 from UtilsRL.rl.buffer import TransitionSimpleReplay
+from UtilsRL.env.wrapper import make_dmc
 
 from offlinerllib.module.actor import SquashedGaussianActor
 from offlinerllib.module.critic import Critic
@@ -14,7 +15,10 @@ from offlinerllib.policy.model_free import SACPolicy
 from offlinerllib.utils.eval import eval_online_policy
 
 args = parse_args()
-exp_name = "_".join([args.task, "seed"+str(args.seed)]) 
+if args.task_type == "mujoco":
+    exp_name = "_".join([args.task, "seed"+str(args.seed)])
+elif args.task_type == "dmc":
+    exp_name = "_".join([args.domain, args.task, "seed"+str(args.seed)])
 logger = CompositeLogger(log_path=f"./log/sac/online/{args.name}", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
     "TensorboardLogger": {"activate": not args.debug}, 
@@ -22,33 +26,46 @@ logger = CompositeLogger(log_path=f"./log/sac/online/{args.name}", name=exp_name
 })
 setup(args, logger)
 
-env = gym.make(args.task)
-eval_env = gym.make(args.task)
+if args.task_type == "mujoco":
+    env = gym.make(args.task)
+    eval_env = gym.make(args.task)
+elif args.task_type == "dmc":
+    env = make_dmc(
+        domain_name=args.domain,
+        task_name=args.task,
+    )
+    eval_env = make_dmc(
+        domain_name=args.domain,
+        task_name=args.task
+    )
+else:
+    raise NotImplementedError("Evaluation shouldn't be called for DeterministicActor.")
+
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
 
 actor_backend = MLP(input_dim=obs_shape, hidden_dims=args.actor_hidden_dims)
 if args.actor_type == "SquashedGaussianActor":
     actor = SquashedGaussianActor(
-        backend=actor_backend, 
-        input_dim=args.actor_hidden_dims[-1], 
-        output_dim=action_shape, 
-        conditioned_logstd=True, 
+        backend=actor_backend,
+        input_dim=args.actor_hidden_dims[-1],
+        output_dim=action_shape,
+        conditioned_logstd=True,
         reparameterize=True
     ).to(args.device)
-    
+
 critic_q = Critic(
-    backend=torch.nn.Identity(), 
-    input_dim=obs_shape+action_shape, 
-    hidden_dims=args.critic_hidden_dims, 
+    backend=torch.nn.Identity(),
+    input_dim=obs_shape+action_shape,
+    hidden_dims=args.critic_hidden_dims,
     ensemble_size=2
 ).to(args.device)
 
 policy = SACPolicy(
-    actor=actor, critic=critic_q, 
-    tau=args.tau, 
-    discount=args.discount, 
-    alpha=(-float(action_shape), args.alpha_lr) if args.auto_alpha else args.alpha, 
+    actor=actor, critic=critic_q,
+    tau=args.tau,
+    discount=args.discount,
+    alpha=(-float(action_shape), args.alpha_lr) if args.auto_alpha else args.alpha,
     device=args.device
 ).to(args.device)
 policy.configure_optimizers(args.actor_lr, args.critic_lr)
@@ -56,11 +73,11 @@ policy.configure_optimizers(args.actor_lr, args.critic_lr)
 buffer = TransitionSimpleReplay(
     max_size=args.max_buffer_size, 
     field_specs={
-        "observations": {"shape": [obs_shape, ], "dtype": np.float32}, 
-        "actions": {"shape": [action_shape, ], "dtype": np.float32}, 
-        "next_observations": {"shape": [obs_shape, ], "dtype": np.float32}, 
-        "rewards": {"shape": [1, ], "dtype": np.float32, }, 
-        "terminals": {"shape": [1, ], "dtype": np.float32, }, 
+        "observations": {"shape": [obs_shape, ], "dtype": np.float32},
+        "actions": {"shape": [action_shape, ], "dtype": np.float32},
+        "next_observations": {"shape": [obs_shape, ], "dtype": np.float32},
+        "rewards": {"shape": [1, ], "dtype": np.float32, },
+        "terminals": {"shape": [1, ], "dtype": np.float32, },
     }
 )
 buffer.reset()
@@ -83,11 +100,11 @@ for i_epoch in trange(1, args.num_epoch+1):
         if cur_traj_length >= args.max_trajectory_length:
             terminal = False
         buffer.add_sample({
-            "observations": obs, 
-            "actions": action, 
-            "next_observations": next_obs, 
-            "rewards": reward, 
-            "terminals": terminal, 
+            "observations": obs,
+            "actions": action,
+            "next_observations": next_obs,
+            "rewards": reward,
+            "terminals": terminal,
         })
         obs = next_obs
         if terminal or cur_traj_length >= args.max_trajectory_length:
@@ -101,7 +118,7 @@ for i_epoch in trange(1, args.num_epoch+1):
         else:
             batch_data = buffer.random_batch(args.batch_size)
             train_metrics = policy.update(batch_data)
-    
+
     if i_epoch % args.eval_interval == 0:
         eval_metrics = eval_online_policy(eval_env, policy, args.eval_episode, seed=args.seed)
         logger.info(f"Episode {i_epoch}: \n{eval_metrics}")
