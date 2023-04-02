@@ -73,9 +73,10 @@ class EnsembleLinear(nn.Module):
         self.in_features = in_features
         self.out_features = out_features
         self.ensemble_size = ensemble_size
+        self.add_bias = bias
         self.register_parameter("weight", torch.nn.Parameter(torch.empty([ensemble_size, in_features, out_features], **factory_kwargs)))
         if bias:
-            self.register_parameter("bias", torch.nn.Parameter(torch.empty([ensemble_size, 1, out_features], **factory_kwargs)))
+            self.register_parameter("bias", torch.nn.Parameter(torch.empty([ensemble_size, out_features], **factory_kwargs)))
         else:
             self.register_parameter("bias", None)
         self.reset_parameters()
@@ -95,9 +96,22 @@ class EnsembleLinear(nn.Module):
         else:
             bias = self.bias
         if input.shape[0] != self.ensemble_size:
-            return torch.einsum('ij,bjk->bik', input, self.weight) + bias
+            res = torch.einsum('...j,bjk->b...k', input, self.weight)
+            if self.add_bias:
+                broadcast_length = len(input.shape)-1
+                return res + bias.reshape([self.ensemble_size]+[1]*broadcast_length+[self.out_features])
+            else:
+                return res
         else:
-            return torch.einsum('bij,bjk->bik', input, self.weight) + bias
+            res = torch.einsum('b...j,bjk->b...k', input, self.weight)
+            if self.add_bias:
+                broadcast_length = len(input.shape)-2
+                return res + bias.reshape([self.ensemble_size]+[1]*broadcast_length+[self.out_features])
+            else:
+                return res
+    
+    def __repr__(self):
+        return f"EnsembleLinear(in_features={self.in_features}, out_features={self.out_features}, bias={self.add_bias})"
 
 
 class NoisyLinear(nn.Linear):
