@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 import torch
 import torch.nn as nn
 
-from offlinerllib.module.net.attention.base imoprt BaseTransformer
+from offlinerllib.module.net.attention.base import BaseTransformer
 from offlinerllib.module.net.attention.positional_encoding import PositionalEmbedding, SinusoidEncoding, ZeroEncoding
 
 
