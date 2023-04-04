@@ -21,7 +21,7 @@ class TransformerEncoderBlock(nn.Module):
         # in transformer we don't add dropout inside MultiheadAttention
         self.attention = nn.MultiheadAttention(
             embed_dim=embed_dim, 
-            num_head=num_heads, 
+            num_heads=num_heads, 
             batch_first=True
         )
         self.norm1 = nn.LayerNorm(embed_dim)
@@ -146,6 +146,7 @@ class TransformerEncoder(BaseTransformer):
         super().__init__()
         self.input_embed = nn.Linear(input_dim, embed_dim)
         
+        pos_len = pos_len or 4096
         if pos_encoding == "sinusoid":
             self.pos_embed = SinusoidEncoding(embed_dim, pos_len)
         elif pos_encoding == "embedding":
