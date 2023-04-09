@@ -77,7 +77,7 @@ class PORPolicy(BasePolicy):
         with torch.no_grad():
             target_v = rewards + self._discount*(1 - terminals)*self.critic_v_target(next_obss)
         vs = self.critic_v(obss, reduce=False)
-        v_loss = expectile_regression(vs, target_v, expectile=self._v_expectile).sum(0).mean()
+        v_loss = expectile_regression(vs, target_v, expectile=self._v_expectile).mean()
         self.critic_v_optim.zero_grad()
         v_loss.backward()
         self.critic_v_optim.step()
