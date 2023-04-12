@@ -317,8 +317,8 @@ class Transformer(BaseTransformer):
     ):
         # Normally we don't need src_timesteps and tgt_timesteps for 
         # natural language processing tasks, but for RL tasks, we may cut 
-        # trjectories into trunks and forwad them trunk by trunk, and thus
-        # the interface for passing in there timesteps is necessary
+        # trajectories into trunks and forward them trunk by trunk, and thus
+        # the interface for passing in timesteps here is necessary
         enc_src = self.encoder(
             inputs=src, 
             timesteps=src_timesteps, 
