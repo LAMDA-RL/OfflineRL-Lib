@@ -17,7 +17,7 @@ def pad_along_axis(
     return np.pad(arr, pad_width=npad, mode="constant", constant_values=fill_value)
 
 
-class D4RLTransitionBuffer(Buffer, IterableDataset, Dataset):
+class D4RLTransitionBuffer(Buffer, IterableDataset):
     def __init__(self, dataset):
         self.observations = dataset["observations"].astype(np.float32)
         self.actions = dataset["actions"].astype(np.float32)

@@ -63,7 +63,7 @@ class MLP(nn.Module):
             activation_list = [None]*len(hidden_dims)
         
         if dropout:
-            if isinstance(dropout. list):
+            if isinstance(dropout, list):
                 assert len(dropout) == len(hidden_dims)
                 dropout_list = dropout
             else:
@@ -147,7 +147,7 @@ class EnsembleMLP(nn.Module):
             activation_list = [None]*len(hidden_dims)
             
         if dropout:
-            if isinstance(dropout. list):
+            if isinstance(dropout, list):
                 assert len(dropout) == len(hidden_dims)
                 dropout_list = dropout
             else:
