@@ -65,10 +65,12 @@ class TransformerDecoderBlock(nn.Module):
         self, 
         embed_dim: int, 
         num_heads: int, 
-        backbone_dim: int, 
+        backbone_dim: Optional[int]=None, 
         dropout: Optional[float]=None
     ) -> None:
         super().__init__()
+        if backbone_dim is None:
+            backbone_dim = 4 * embed_dim
         self.self_attention = nn.MultiheadAttention(
             embed_dim=embed_dim, 
             num_heads=num_heads, 
@@ -100,6 +102,7 @@ class TransformerDecoderBlock(nn.Module):
         enc_src: Optional[torch.Tensor]=None, 
         tgt_attention_mask: Optional[torch.Tensor]=None, 
         tgt_key_padding_mask: Optional[torch.Tensor]=None, 
+        src_attention_mask: Optional[torch.Tensor]=None, 
         src_key_padding_mask: Optional[torch.Tensor]=None, 
     ):
         # compute self.attention
@@ -120,6 +123,7 @@ class TransformerDecoderBlock(nn.Module):
                 query=x, 
                 key=enc_src, 
                 value=enc_src, 
+                attn_mask=src_attention_mask, 
                 key_padding_mask=src_key_padding_mask
             )[0]
             x = self.norm2(_x + self.dropout2(x))
@@ -213,6 +217,8 @@ class TransformerDecoder(BaseTransformer):
             self.pos_embed = SinusoidEncoding(embed_dim, pos_len)
         elif pos_encoding == "embedding":
             self.pos_embed = PositionalEmbedding(embed_dim, pos_len)
+        elif pos_encoding == "none":
+            self.pos_embed = ZeroEncoding(embed_dim, pos_len)
         self.embed_dropout = nn.Dropout(embed_dropout)
 
         self.blocks = nn.ModuleList([
@@ -232,6 +238,7 @@ class TransformerDecoder(BaseTransformer):
         timesteps: Optional[torch.Tensor]=None, 
         tgt_attention_mask: Optional[torch.Tensor]=None, 
         tgt_key_padding_mask: Optional[torch.Tensor]=None, 
+        src_attention_mask: Optional[torch.Tensor]=None, 
         src_key_padding_mask: Optional[torch.Tensor]=None, 
         do_embedding: bool=True
     ):
@@ -254,6 +261,7 @@ class TransformerDecoder(BaseTransformer):
                 enc_src=enc_src, 
                 tgt_attention_mask=tgt_mask, 
                 tgt_key_padding_mask=tgt_key_padding_mask, 
+                src_attention_mask=src_attention_mask, 
                 src_key_padding_mask=src_key_padding_mask
             )
         return output
@@ -299,7 +307,7 @@ class Transformer(BaseTransformer):
         self, 
         src: torch.Tensor, 
         tgt: torch.Tensor, 
-        src_tiemsteps: Optional[torch.Tensor]=None,
+        src_timesteps: Optional[torch.Tensor]=None,
         tgt_timesteps: Optional[torch.Tensor]=None, 
         src_attention_mask: Optional[torch.Tensor]=None, 
         src_key_padding_mask: Optional[torch.Tensor]=None, 
@@ -307,16 +315,16 @@ class Transformer(BaseTransformer):
         tgt_key_padding_mask: Optional[torch.Tensor]=None, 
         do_embedding: bool=True
     ):
-        # Normally we don't need src_tiemsteps and tgt_timesteps for 
+        # Normally we don't need src_timesteps and tgt_timesteps for 
         # natural language processing tasks, but for RL tasks, we may cut 
         # trjectories into trunks and forwad them trunk by trunk, and thus
         # the interface for passing in there timesteps is necessary
         enc_src = self.encoder(
             inputs=src, 
-            timesteps=src_tiemsteps, 
+            timesteps=src_timesteps, 
             attention_mask=src_attention_mask, 
             key_padding_task=src_key_padding_mask, 
-            do_embedding=True
+            do_embedding=do_embedding
         )
         output = self.decoder(
             tgt=tgt, 
