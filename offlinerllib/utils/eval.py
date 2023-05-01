@@ -59,7 +59,7 @@ def eval_decision_transformer(
             state, done = env.reset(), False
             
             states[:, 0] = state
-            returns_to_go[:, 0] = target_return/return_scale
+            returns_to_go[:, 0] = target_return*return_scale
             
             episode_return = episode_length = 0
             for step in range(actor.episode_len):
@@ -72,7 +72,7 @@ def eval_decision_transformer(
                 next_state, reward, done, info = env.step(action)
                 actions[:, step] = action
                 states[:, step+1] = next_state
-                returns_to_go[:, step+1] = returns_to_go[:, step] - reward/return_scale
+                returns_to_go[:, step+1] = returns_to_go[:, step] - reward*return_scale
                 
                 episode_return += reward
                 episode_length += 1
