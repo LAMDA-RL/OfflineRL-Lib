@@ -11,6 +11,6 @@ tau = 0.005
 aw_temperature = 10.0
 norm_layer = True
 dropout = None
-value_dropout = 0.5
+value_dropout = None
 
 actor_opt_decay_schedule = None

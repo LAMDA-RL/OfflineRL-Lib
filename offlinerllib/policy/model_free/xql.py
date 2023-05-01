@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from offlinerllib.module.actor import DeterministicActor, GaussianActor
+from offlinerllib.module.actor import DeterministicActor, GaussianActor, CategoricalActor
 from offlinerllib.policy import BasePolicy
 from offlinerllib.utils.functional import gumbel_log_loss, gumbel_rescale_loss
 from offlinerllib.utils.misc import convert_to_tensor, make_target
@@ -21,9 +21,6 @@ class XQLPolicy(BasePolicy):
         actor: nn.Module, 
         critic_q: nn.Module, 
         critic_v: nn.Module, 
-        actor_optim: torch.optim.Optimizer, 
-        critic_q_optim: torch.optim.Optimizer, 
-        critic_v_optim: torch.optim.Optimizer, 
         num_v_update: int=1, 
         scale_random_sample: int=0, 
         loss_temperature: float=1.0, 
@@ -41,10 +38,6 @@ class XQLPolicy(BasePolicy):
         self.critic_q_target = make_target(self.critic_q)
         self.critic_v = critic_v
         
-        self.actor_optim = actor_optim
-        self.critic_q_optim = critic_q_optim
-        self.critic_v_optim = critic_v_optim
-        
         self.num_v_update = num_v_update
         self.scale_random_sample = scale_random_sample
         
@@ -57,6 +50,15 @@ class XQLPolicy(BasePolicy):
         self.noise_std = noise_std
 
         self.to(device)
+        
+    def configure_optimizers(self, actor_lr, critic_v_lr, critic_q_lr, actor_opt_scheduler_steps=None):
+        self.actor_optim = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+        self.critic_v_optim = torch.optim.Adam(self.critic_v.parameters(), lr=critic_v_lr)
+        self.critic_q_optim = torch.optim.Adam(self.critic_q.parameters(), lr=critic_q_lr)
+        if actor_opt_scheduler_steps is not None:
+            self.actor_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.actor_optim, actor_opt_scheduler_steps)
+        else:
+            self.actor_lr_scheduler = None
 
     @torch.no_grad()   
     def select_action(self, obs: np.ndarray, deterministic: bool=False):
@@ -103,12 +105,14 @@ class XQLPolicy(BasePolicy):
             exp_advantage = torch.exp((q-v)*self.aw_temperature).clamp(max=100.0)
         if isinstance(self.actor, DeterministicActor):
             policy_out = torch.sum((self.actor.sample(obss)[0] - actions)**2, dim=1)
-        elif isinstance(self.actor, GaussianActor):
+        elif isinstance(self.actor, (GaussianActor, CategoricalActor)):
             policy_out = - self.actor.evaluate(obss, actions)[0]
         actor_loss = (exp_advantage * policy_out).mean()
         self.actor_optim.zero_grad()
         actor_loss.backward()
         self.actor_optim.step()
+        if self.actor_lr_scheduler is not None:
+            self.actor_lr_scheduler.step()
         actor_loss_value = actor_loss.detach().cpu().item()
         
         # update q network

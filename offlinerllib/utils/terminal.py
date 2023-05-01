@@ -112,13 +112,16 @@ def termination_fn_pen(obs, act, next_obs):
     done = done[:,None]
     return done
 
-def terminaltion_fn_door(obs, act, next_obs):
+def termination_fn_door(obs, act, next_obs):
     assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
 
     done = np.array([False] * obs.shape[0])
 
     done = done[:, None]
     return done
+
+def termination_fn_minigrid(obs, act, next_obs):
+    return False
 
 def get_termination_fn(task, obs_mean=None, obs_std=None):
     termination_fn = None
@@ -145,7 +148,9 @@ def get_termination_fn(task, obs_mean=None, obs_std=None):
     elif 'pen' in task:
         termination_fn = termination_fn_pen
     elif 'door' in task:
-        termination_fn = terminaltion_fn_door
+        termination_fn = termination_fn_door
+    elif 'minigrid' in task:
+        termination_fn = termination_fn_minigrid
     else:
         raise ValueError(f"No termination functions for task {task}")
     if obs_mean is not None or obs_std is not None:

@@ -5,7 +5,7 @@ from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
 
 from offlinerllib.buffer import D4RLTransitionBuffer
-from offlinerllib.module.actor import ClippedGaussianActor
+from offlinerllib.module.actor import CategoricalActor
 from offlinerllib.module.critic import Critic, DoubleCritic
 from offlinerllib.module.net.mlp import MLP
 from offlinerllib.policy.model_free import XQLPolicy
@@ -23,17 +23,15 @@ setup(args, logger)
 
 env, dataset = get_d4rl_dataset(args.task, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
 obs_shape = env.observation_space.shape[0]
-action_shape = env.action_space.shape[-1]
+action_shape = env.action_space.n
 
 offline_buffer = D4RLTransitionBuffer(dataset)
 
 actor_backend = MLP(input_dim=obs_shape, hidden_dims=args.hidden_dims, dropout=args.dropout)
-actor = ClippedGaussianActor(
+actor = CategoricalActor(
     backend=actor_backend, 
     input_dim=args.hidden_dims[-1], 
     output_dim=action_shape, 
-    conditioned_logstd=args.conditioned_logstd, 
-    logstd_min = args.policy_logstd_min
 ).to(args.device)
     
 critic_q = DoubleCritic(
@@ -63,7 +61,7 @@ policy = XQLPolicy(
     max_action=args.max_action, 
     device=args.device
 ).to(args.device)
-actor_opt_scheduler_steps = args.max_epoch * args.step_per_epoch if args.actor_opt_decay_schedule == "cosine" else None
+actor_opt_scheduler_steps = args.max_epoch * args.steps_per_epoch if args.actor_opt_decay_schedule == "cosine" else None
 policy.configure_optimizers(
     actor_lr=args.actor_lr, 
     critic_v_lr=args.critic_v_lr, 
