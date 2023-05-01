@@ -36,7 +36,6 @@ if args.actor_type == "SquashedGaussianActor":
         conditioned_logstd=True, 
         reparameterize=True
     ).to(args.device)
-actor_optim = torch.optim.Adam(actor.parameters(), lr=args.actor_lr)
     
 critic_q = Critic(
     backend=torch.nn.Identity(), 
@@ -44,16 +43,15 @@ critic_q = Critic(
     hidden_dims=args.critic_hidden_dims, 
     ensemble_size=2
 ).to(args.device)
-critic_q_optim = torch.optim.Adam(critic_q.parameters(), lr=args.critic_lr)
 
 policy = SACPolicy(
     actor=actor, critic=critic_q, 
-    actor_optim=actor_optim, critic_optim=critic_q_optim, 
     tau=args.tau, 
     discount=args.discount, 
     alpha=(-float(action_shape), args.alpha_lr) if args.auto_alpha else args.alpha, 
     device=args.device
 ).to(args.device)
+policy.configure_optimizers(args.actor_lr, args.critic_lr)
 
 buffer = TransitionSimpleReplay(
     max_size=args.max_buffer_size, 

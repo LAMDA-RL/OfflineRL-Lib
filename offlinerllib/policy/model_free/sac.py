@@ -20,8 +20,6 @@ class SACPolicy(BasePolicy):
         self,
         actor: BaseActor,
         critic: Critic,
-        actor_optim: torch.optim.Optimizer,
-        critic_optim: torch.optim.Optimizer,
         tau: float = 0.005,
         discount: float = 0.99,
         alpha: Union[float, Tuple[float, float]] = 0.2,
@@ -32,9 +30,6 @@ class SACPolicy(BasePolicy):
         self.actor = actor
         self.critic = critic
         self.critic_target = make_target(self.critic)
-
-        self.actor_optim = actor_optim
-        self.critic_optim = critic_optim
 
         self._is_auto_alpha = False
         if isinstance(alpha, tuple):
@@ -51,6 +46,10 @@ class SACPolicy(BasePolicy):
         self._discount = discount
 
         self.to(device)
+
+    def configure_optimizers(self, actor_lr, critic_lr):
+        self.actor_optim = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+        self.critic_optim = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
 
     @torch.no_grad()
     def select_action(

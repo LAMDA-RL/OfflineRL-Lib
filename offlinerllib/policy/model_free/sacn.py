@@ -14,16 +14,17 @@ class SACNPolicy(SACPolicy):
         self, 
         actor: BaseActor, 
         critic: Critic, 
-        actor_optim: nn.Module, 
-        critic_optim: nn.Module, 
         tau: float = 0.005, 
         discount: float = 0.99, 
         alpha: Union[float, Tuple[float, float]] = 0.2, 
         do_reverse_update: bool = False, 
         device: Union[str, torch.device] = "cpu"
     ) -> None:
-        super().__init__(actor, critic, actor_optim, critic_optim, tau, discount, alpha, device)
+        super().__init__(actor, critic, tau, discount, alpha, device)
         self.do_reverse_update = do_reverse_update
+
+    def configure_optimizers(self, actor_lr, critic_lr):
+        return super().configure_optimizers(actor_lr, critic_lr)
     
     def update(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
         if self.do_reverse_update:

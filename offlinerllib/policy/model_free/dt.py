@@ -15,7 +15,6 @@ class DecisionTransformerPolicy(BasePolicy):
     def __init__(
         self, 
         dt: DecisionTransformer, 
-        dt_optim: torch.optim, 
         state_dim: int, 
         action_dim: int, 
         seq_len: int, 
@@ -24,13 +23,20 @@ class DecisionTransformerPolicy(BasePolicy):
     ) -> None:
         super().__init__()
         self.dt = dt
-        self.dt_optim = dt_optim
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.seq_len = seq_len
         self.episode_len = episode_len
         
         self.to(device)
+
+    def configure_optimizers(self, lr, weight_decay, betas, warmup_steps):
+        decay, no_decay = self.dt.configure_params()
+        self.dt_optim = torch.optim.AdamW([
+            {"params": decay, "weight_decay": weight_decay}, 
+            {"params": no_decay, "weight_decay": 0.0}
+        ], lr=lr, betas=betas)
+        self.dt_optim_scheduler = torch.optim.lr_scheduler.LambdaLR(self.dt_optim, lambda step: min((step+1)/warmup_steps, 1))
 
     @torch.no_grad()
     def select_action(self, states, actions, returns_to_go, timesteps, **kwargs):
@@ -83,9 +89,11 @@ class DecisionTransformerPolicy(BasePolicy):
         if clip_grad is not None:
             torch.nn.utils.clip_grad_norm_(self.dt.parameters(), clip_grad)
         self.dt_optim.step()
+        self.dt_optim_scheduler.step()
         
         return {
             "loss/mse_loss": mse_loss.item(), 
+            "misc/learning_rate": self.dt_optim_scheduler.get_last_lr()[0]
         }
         
         

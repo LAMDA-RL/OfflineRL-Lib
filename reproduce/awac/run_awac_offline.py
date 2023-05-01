@@ -33,7 +33,6 @@ actor = ClippedGaussianActor(
     input_dim=args.hidden_dims[-1], 
     output_dim=action_shape, 
 ).to(args.device)
-actor_optim = torch.optim.Adam(actor.parameters(), lr=args.actor_lr, weight_decay=args.actor_weight_decay)
 
 critic = Critic(
     backend=torch.nn.Identity(), 
@@ -41,18 +40,16 @@ critic = Critic(
     hidden_dims=args.hidden_dims, 
     ensemble_size=2
 ).to(args.device)
-critic_optim = torch.optim.Adam(critic.parameters(), lr=args.critic_lr)
 
 policy = AWACPolicy(
     actor=actor, 
     critic=critic, 
-    actor_optim=actor_optim, 
-    critic_optim=critic_optim, 
     aw_lambda=args.aw_lambda, 
     tau=args.tau, 
     discount=args.discount, 
     device=args.device
 ).to(args.device)
+policy.configure_optimizers(args.actor_lr, args.critic_lr)
 
 
 # main loop

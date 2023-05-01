@@ -34,7 +34,6 @@ actor = SquashedDeterministicActor(
     output_dim=action_shape, 
     device=args.device
 ).to(args.device)
-actor_optim = torch.optim.Adam(actor.parameters(), lr=args.actor_lr)
 
 critic = Critic(
     backend=torch.nn.Identity(), 
@@ -43,13 +42,10 @@ critic = Critic(
     ensemble_size=2, 
     device=args.device
 ).to(args.device)
-critic_optim = torch.optim.Adam(critic.parameters(), lr=args.critic_lr)
 
 policy = TD3BCPolicy(
     actor=actor, 
     critic=critic, 
-    actor_optim=actor_optim, 
-    critic_optim=critic_optim,
     alpha=args.alpha, 
     actor_update_interval=args.actor_update_interval, 
     policy_noise=args.policy_noise, 
@@ -59,6 +55,7 @@ policy = TD3BCPolicy(
     max_action=args.max_action, 
     device=args.device, 
 ).to(args.device)
+policy.configure_optimizers(args.actor_lr, args.critic_lr)
 
 
 # main loop

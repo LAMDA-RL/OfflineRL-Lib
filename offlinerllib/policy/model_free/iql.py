@@ -22,9 +22,6 @@ class IQLPolicy(BasePolicy):
         actor: nn.Module,
         critic_q: nn.Module, 
         critic_v: nn.Module,
-        actor_optim: torch.optim.Optimizer,
-        critic_q_optim: torch.optim.Optimizer, 
-        critic_v_optim: torch.optim.Optimizer,
         expectile: float = 0.7,
         temperature: float = 3.0, 
         tau: float = 0.005,
@@ -39,10 +36,6 @@ class IQLPolicy(BasePolicy):
         self.critic_q_old = make_target(self.critic_q)
         self.critic_v = critic_v
 
-        self.actor_optim = actor_optim
-        self.critic_q_optim = critic_q_optim
-        self.critic_v_optim = critic_v_optim
-
         self._max_action = max_action
         self._tau = tau
         self._discount = discount
@@ -50,6 +43,15 @@ class IQLPolicy(BasePolicy):
         self._temperature = temperature
         
         self.to(device)
+    
+    def configure_optimizers(self, actor_lr, critic_v_lr, critic_q_lr, actor_opt_scheduler_steps=None):
+        self.actor_optim = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+        self.critic_v_optim = torch.optim.Adam(self.critic_v.parameters(), lr=critic_v_lr)
+        self.critic_q_optim = torch.optim.Adam(self.critic_q.parameters(), lr=critic_q_lr)
+        if actor_opt_scheduler_steps is not None:
+            self.actor_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.actor_optim, actor_opt_scheduler_steps)
+        else:
+            self.actor_lr_scheduler = None
     
     @torch.no_grad()
     def select_action(self, obs: np.ndarray, deterministic: bool = False) -> np.ndarray:
@@ -97,6 +99,8 @@ class IQLPolicy(BasePolicy):
         self.actor_optim.zero_grad()
         actor_loss.backward()
         self.actor_optim.step()
+        if self.actor_lr_scheduler is not None:
+            self.actor_lr_scheduler.step()
 
         self._sync_weight()
 

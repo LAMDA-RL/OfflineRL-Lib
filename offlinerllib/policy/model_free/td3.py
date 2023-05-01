@@ -19,8 +19,6 @@ class TD3Policy(BasePolicy):
         self,
         actor: BaseActor,
         critic: Critic, 
-        actor_optim: torch.optim.Optimizer,
-        critic_optim: torch.optim.Optimizer,
         actor_update_interval: int = 2, 
         policy_noise: float = 0.2, 
         noise_clip: float = 0.5,
@@ -36,8 +34,6 @@ class TD3Policy(BasePolicy):
         self.actor_target = make_target(self.actor)
         self.critic = critic
         self.critic_target = make_target(self.critic)
-        self.actor_optim = actor_optim
-        self.critic_optim = critic_optim
 
         self._tau = tau
         self._discount = discount
@@ -50,6 +46,10 @@ class TD3Policy(BasePolicy):
         self._update_cnt = 0
         
         self.to(device)
+
+    def configure_optimizers(self, actor_lr, critic_lr):
+        self.actor_optim = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+        self.critic_optim = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
         
     @torch.no_grad()
     def select_action(

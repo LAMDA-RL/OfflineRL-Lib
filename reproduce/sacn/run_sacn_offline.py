@@ -34,7 +34,6 @@ actor = SquashedGaussianActor(
     output_dim=action_shape, 
     logstd_min=args.policy_logstd_min
 ).to(args.device)
-actor_optim = torch.optim.Adam(actor.parameters(), lr=args.actor_lr)
 
 critic = Critic(
     backend=torch.nn.Identity(), 
@@ -42,19 +41,17 @@ critic = Critic(
     hidden_dims=args.hidden_dims, 
     ensemble_size=args.num_critics
 ).to(args.device)
-critic_optim = torch.optim.Adam(critic.parameters(), lr=args.critic_lr)
 
 policy = SACNPolicy(
     actor=actor, 
     critic=critic, 
-    actor_optim=actor_optim, 
-    critic_optim=critic_optim, 
     tau=args.tau, 
     discount=args.discount, 
     alpha=(-float(action_shape), args.alpha_lr) if args.auto_alpha else args.alpha, 
     do_reverse_update=args.do_reverse_update, 
     device=args.device
 ).to(args.device)
+policy.configure_optimizers(args.actor_lr, args.critic_lr)
 
 
 # main loop

@@ -65,22 +65,19 @@ critic_v = Critic(
     device=args.device
 ).to(args.device)
 
-actor_optim = torch.optim.Adam(actor.parameters(), lr=args.learning_rate)
-behavior_optim = torch.optim.Adam(behavior.parameters(), lr=args.learning_rate)
-critic_q_optim = torch.optim.Adam(critic_q.parameters(), lr=args.learning_rate)
-critic_v_optim = torch.optim.Adam(critic_v.parameters(), lr=args.learning_rate)
-
 policy = InACPolicy(
     actor=actor, behavior=behavior, critic_q=critic_q, critic_v=critic_v, 
-    actor_optim=actor_optim, 
-    behavior_optim=behavior_optim,
-    critic_q_optim=critic_q_optim, 
-    critic_v_optim=critic_v_optim, 
     temperature=args.temperature, 
     discount=args.discount, 
     tau=args.tau, 
     device=args.device
 ).to(args.device)
+policy.configure_optimizers(
+    actor_lr=args.learning_rate, 
+    critic_q_lr=args.learning_rate, 
+    critic_v_lr=args.learning_rate, 
+    behavior_lr=args.learning_rate
+)
 
 # main loop
 policy.train()

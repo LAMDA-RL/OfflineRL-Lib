@@ -18,8 +18,6 @@ class TD3BCPolicy(TD3Policy):
         self, 
         actor: BaseActor, 
         critic: Critic, 
-        actor_optim: torch.optim.Optimizer, 
-        critic_optim: torch.optim.Optimizer, 
         alpha: float = 0.2, 
         actor_update_interval: int = 2, 
         policy_noise: float = 0.2, 
@@ -32,8 +30,6 @@ class TD3BCPolicy(TD3Policy):
         super().__init__(
             actor=actor, 
             critic=critic, 
-            actor_optim=actor_optim, 
-            critic_optim=critic_optim, 
             actor_update_interval=actor_update_interval, 
             policy_noise=policy_noise, 
             noise_clip=noise_clip, 
@@ -44,6 +40,9 @@ class TD3BCPolicy(TD3Policy):
             device=device
         )
         self.alpha = alpha
+
+    def configure_optimizers(self, actor_lr, critic_lr):
+        return super().configure_optimizers(actor_lr, critic_lr)
         
     def actor_loss(self, batch: Dict[str, Any]) -> Tuple[torch.Tensor, Dict[str, Any]]:
         obss, actions = itemgetter("observations", "actions")(batch)

@@ -21,8 +21,6 @@ class AWACPolicy(SACPolicy):
         self, 
         actor: nn.Module, 
         critic: nn.Module, 
-        actor_optim: torch.optim.Optimizer, 
-        critic_optim: torch.optim.Optimizer, 
         aw_lambda: float = 1.0, 
         discount: float = 0.99, 
         tau: float = 5e-3, 
@@ -32,8 +30,6 @@ class AWACPolicy(SACPolicy):
         super().__init__(
             actor=actor, 
             critic=critic, 
-            actor_optim=actor_optim, 
-            critic_optim=critic_optim, 
             tau=tau, 
             discount=discount, 
             alpha=0.0, 
@@ -41,7 +37,9 @@ class AWACPolicy(SACPolicy):
         )
         self._exp_adv_max = exp_adv_max
         self._aw_lambda = aw_lambda
-        
+
+    def configure_optimizers(self, actor_lr, critic_lr):
+        return super().configure_optimizers(actor_lr, critic_lr)
         
     def _actor_loss(self, batch: Dict[str, Any]) -> Dict[str, Any]:
         obss, actions = itemgetter("observations", "actions")(batch)

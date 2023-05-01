@@ -18,8 +18,6 @@ class EDACPolicy(SACNPolicy):
         self,
         actor: BaseActor,
         critic: Critic,
-        actor_optim: optim.Optimizer,
-        critic_optim: optim.Optimizer,
         tau: float = 0.005,
         eta: float = 1.0,
         discount: float = 0.99,
@@ -27,9 +25,19 @@ class EDACPolicy(SACNPolicy):
         do_reverse_update: bool = False,
         device: Union[str, torch.device] = "cpu"
     ) -> None:
-        super().__init__(actor, critic, actor_optim, critic_optim, tau, discount,
-                         alpha, do_reverse_update, device)
+        super().__init__(
+            actor, 
+            critic, 
+            tau, 
+            discount,
+            alpha, 
+            do_reverse_update, 
+            device
+        )
         self.eta = eta
+
+    def configure_optimizers(self, actor_lr, critic_lr):
+        return super().configure_optimizers(actor_lr, critic_lr)
 
     def _critic_loss(self, batch: Dict[str, torch.Tensor]) -> Tuple[Dict[str, torch.Tensor], Dict[str, float]]:
         critic_loss, critic_loss_metrics = super()._critic_loss(batch)

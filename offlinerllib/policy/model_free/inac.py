@@ -20,10 +20,6 @@ class InACPolicy(BasePolicy):
         behavior: BaseActor, 
         critic_q: Critic,
         critic_v: Critic,
-        actor_optim: torch.optim.Optimizer, 
-        behavior_optim: torch.optim.Optimizer,
-        critic_q_optim: torch.optim.Optimizer, 
-        critic_v_optim: torch.optim.Optimizer, 
         temperature: float = 0.01, 
         discount: float = 0.99, 
         tau: float = 5e-3, 
@@ -37,10 +33,6 @@ class InACPolicy(BasePolicy):
         self.critic_q = critic_q
         self.critic_v = critic_v
         self.critic_q_target = make_target(critic_q)
-        self.actor_optim = actor_optim
-        self.critic_q_optim = critic_q_optim
-        self.critic_v_optim = critic_v_optim
-        self.behavior_optim = behavior_optim
         self._temperature = temperature
         self._tau = tau
         self._discount = discount
@@ -48,6 +40,12 @@ class InACPolicy(BasePolicy):
         self._adv_max = adv_max
         
         self.to(device)
+
+    def configure_optimizers(self, actor_lr, critic_q_lr, critic_v_lr, behavior_lr):
+        self.actor_optim = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+        self.critic_q_optim = torch.optim.Adam(self.critic_q.parameters(), lr=critic_q_lr)
+        self.critic_v_optim = torch.optim.Adam(self.critic_v.parameters(), lr=critic_v_lr)
+        self.behavior_optim = torch.optim.Adam(self.behavior.parameters(), lr=behavior_lr)
         
     @torch.no_grad()
     def select_action(

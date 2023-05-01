@@ -42,35 +42,35 @@ else:
         conditioned_logstd=args.conditioned_logstd, 
         logstd_min = args.policy_logstd_min
     ).to(args.device)
-actor_optim = torch.optim.Adam(actor.parameters(), lr=args.actor_lr)
-if args.actor_opt_decay_schedule:
-    actor_lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(actor_optim, args.max_epoch * args.step_per_epoch)
-else:
-    actor_lr_scheduler = None
+
     
 critic_q = DoubleCritic(
     backend=torch.nn.Identity(), 
     input_dim=obs_shape + action_shape, 
     hidden_dims=args.hidden_dims, 
 ).to(args.device)
-critic_q_optim = torch.optim.Adam(critic_q.parameters(), lr=args.critic_q_lr)
 
 critic_v = Critic(
     backend=torch.nn.Identity(), 
     input_dim=obs_shape, 
     hidden_dims=args.hidden_dims, 
 ).to(args.device)
-critic_v_optim = torch.optim.Adam(critic_v.parameters(), lr=args.critic_v_lr)
 
 policy = IQLPolicy(
     actor=actor, critic_q=critic_q, critic_v=critic_v, 
-    actor_optim=actor_optim, critic_q_optim=critic_q_optim, critic_v_optim=critic_v_optim, 
     expectile=args.expectile, temperature=args.temperature, 
     tau=args.tau, 
     discount=args.discount, 
     max_action=args.max_action, 
     device=args.device, 
 ).to(args.device)
+actor_opt_scheduler_steps = args.max_epoch * args.step_per_epoch if args.actor_opt_decay_schedule == "cosine" else None
+policy.configure_optimizers(
+    actor_lr=args.actor_lr, 
+    critic_v_lr=args.critic_v_lr, 
+    critic_q_lr=args.critic_q_lr, 
+    actor_opt_scheduler_steps=actor_opt_scheduler_steps
+)
 
 
 # main loop
@@ -79,8 +79,6 @@ for i_epoch in trange(1, args.max_epoch+1):
     for i_step in range(args.step_per_epoch):
         batch = offline_buffer.random_batch(args.batch_size)
         train_metrics = policy.update(batch)
-        if actor_lr_scheduler is not None:
-            actor_lr_scheduler.step()
     
     if i_epoch % args.eval_interval == 0:
         eval_metrics = eval_offline_policy(env, policy, args.eval_episode, seed=args.seed)
