@@ -8,3 +8,4 @@ from .td3 import TD3Policy
 from .td3bc import TD3BCPolicy
 from .awac import AWACPolicy
 from .inac import InACPolicy
+from .por import PORPolicy
