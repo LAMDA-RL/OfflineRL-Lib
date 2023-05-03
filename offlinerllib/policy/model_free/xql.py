@@ -30,6 +30,7 @@ class XQLPolicy(BasePolicy):
         tau: float = 0.005, 
         discount: float = 0.99, 
         max_action: float = 1.0, 
+        max_clip: float = 1.0, 
         device: Union[str, torch.device] = "cpu"
     ) -> None:
         super().__init__()
@@ -47,6 +48,7 @@ class XQLPolicy(BasePolicy):
         self.aw_temperature = aw_temperature
         self.use_log_loss = use_log_loss
         self.max_action = max_action
+        self.max_clip = max_clip
         self.noise_std = noise_std
 
         self.to(device)
@@ -89,9 +91,10 @@ class XQLPolicy(BasePolicy):
                 q = self.critic_q_target(v_obss, v_actions)
             v = self.critic_v(v_obss)
             if self.use_log_loss:
-                value_loss = gumbel_log_loss(v, q, alpha=self.loss_temperature).mean()
+                value_loss = gumbel_log_loss(v, q, alpha=self.loss_temperature, clip_max=self.max_clip).mean()
             else:
-                value_loss = gumbel_rescale_loss(v, q, alpha=self.loss_temperature).mean()
+                value_loss = gumbel_rescale_loss(v, q, alpha=self.loss_temperature, clip_max=self.max_clip).mean()
+            clip_ratio = (((q-v)/self.loss_temperature) > self.max_clip).float().mean().item()
             self.critic_v_optim.zero_grad()
             value_loss.backward()
             self.critic_v_optim.step()
@@ -131,7 +134,8 @@ class XQLPolicy(BasePolicy):
         return {
             "loss/q_loss": q_loss_value, 
             "loss/actor_loss": actor_loss_value, 
-            "loss/v_loss": v_loss_value
+            "loss/v_loss": v_loss_value, 
+            "misc/clip_ratio": clip_ratio
         }
                 
     def _sync_weight(self) -> None:

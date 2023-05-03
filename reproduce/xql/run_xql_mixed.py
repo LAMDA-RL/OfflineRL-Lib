@@ -72,6 +72,7 @@ policy = XQLPolicy(
     tau=args.tau, 
     discount=args.discount, 
     max_action=args.max_action, 
+    max_clip=args.max_clip, 
     device=args.device
 ).to(args.device)
 actor_opt_scheduler_steps = args.max_epoch * args.step_per_epoch if args.actor_opt_decay_schedule == "cosine" else None
