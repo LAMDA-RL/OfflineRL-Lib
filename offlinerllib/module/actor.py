@@ -266,6 +266,7 @@ class GaussianActor(BaseActor):
     fix_logstd :  If not None, the logstd will be set to this value and fixed (un-learnable). 
     logstd_min: The minimum value of logstd. Default is -20. 
     logstd_max: The maximum value of logstd. Default is 2. 
+    logstd_hard_clip: Whether or not to hard-clip the logstd. If True, then logstd = clip(logstd_out, logstd_min, logstd_max); otherwise logstd = frac{tanh(logstd_out)+1}{2}*(logstd_max-logstd_min) + logstd_min. 
     device :  The device which the model runs on. Default is cpu. 
     ***(any args of MLP or EnsembleMLP)
     """
@@ -279,6 +280,7 @@ class GaussianActor(BaseActor):
         fix_logstd: Optional[float]=None, 
         logstd_min: int = -20, 
         logstd_max: int = 2,
+        logstd_hard_clip: bool=True, 
         device: Union[str, int, torch.device]="cpu", 
         *, 
         ensemble_size: int = 1, 
@@ -296,6 +298,7 @@ class GaussianActor(BaseActor):
         self.reparameterize = reparameterize
         self.device = device
         self.backend = backend
+        self.logstd_hard_clip = logstd_hard_clip
         
         if fix_logstd is not None:
             self._logstd_is_layer = False
@@ -344,7 +347,10 @@ class GaussianActor(BaseActor):
         else:
             mean = out
             logstd = self.logstd.broadcast_to(mean.shape)
-        logstd = torch.clip(logstd, min=self.logstd_min, max=self.logstd_max)
+        if self.logstd_hard_clip:
+            logstd = torch.clip(logstd, min=self.logstd_min, max=self.logstd_max)
+        else:
+            logstd = self.logstd_min + (torch.tanh(logstd)+1)/2*(self.logstd_max - self.logstd_min)
         return mean, logstd
     
     def sample(self, obs: torch.Tensor, deterministic: bool=False, return_mean_logstd: bool=False, *args, **kwargs) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
@@ -418,6 +424,7 @@ class SquashedGaussianActor(GaussianActor):
     fix_logstd :  If not None, the logstd will be set to this value and fixed (un-learnable). 
     logstd_min: The minimum value of logstd. Default is -20. 
     logstd_max: The maximum value of logstd. Default is 2. 
+    logstd_hard_clip: Whether or not to hard-clip the logstd. If True, then logstd = clip(logstd_out, logstd_min, logstd_max); otherwise logstd = frac{tanh(logstd_out)+1}{2}*(logstd_max-logstd_min) + logstd_min. 
     device :  The device which the model runs on. Default is cpu. 
     ***(any args of MLP or EnsembleMLP)
     """
@@ -431,6 +438,7 @@ class SquashedGaussianActor(GaussianActor):
         fix_logstd: Optional[float] = None, 
         logstd_min: int = -20, 
         logstd_max: int = 2, 
+        logstd_hard_clip: bool=True, 
         device: Union[str, int, torch.device]="cpu",
         *, 
         ensemble_size: int = 1, 
@@ -441,7 +449,7 @@ class SquashedGaussianActor(GaussianActor):
         share_hidden_layer: Union[Sequence[bool], bool] = False, 
     ) -> None:
         super().__init__(
-            backend, input_dim, output_dim, reparameterize, conditioned_logstd, fix_logstd, logstd_min, logstd_max, device,  
+            backend, input_dim, output_dim, reparameterize, conditioned_logstd, fix_logstd, logstd_min, logstd_max, logstd_hard_clip, device,  
             ensemble_size=ensemble_size, 
             hidden_dims=hidden_dims, 
             norm_layer=norm_layer, 
@@ -494,7 +502,7 @@ class SquashedGaussianActor(GaussianActor):
         :param state: state of the environment.
         :param action: action to be evaluated.
         """
-        mean, logstd = self(obs)
+        mean, logstd = self.forward(obs)
         dist = TanhNormal(mean, logstd.exp())
         info = {"dist": dist} if return_dist else False
         return dist.log_prob(action).sum(-1, keepdim=True), info
@@ -522,6 +530,7 @@ class ClippedGaussianActor(GaussianActor):
     fix_logstd :  If not None, the logstd will be set to this value and fixed (un-learnable). 
     logstd_min: The minimum value of logstd. Default is -20. 
     logstd_max: The maximum value of logstd. Default is 2. 
+    logstd_hard_clip: Whether or not to hard-clip the logstd. If True, then logstd = clip(logstd_out, logstd_min, logstd_max); otherwise logstd = frac{tanh(logstd_out)+1}{2}*(logstd_max-logstd_min) + logstd_min. 
     device :  The device which the model runs on. Default is cpu. 
     ***(any args of MLP or EnsembleMLP)
     """
@@ -535,6 +544,7 @@ class ClippedGaussianActor(GaussianActor):
         fix_logstd: Optional[float] = None, 
         logstd_min: int = -20, 
         logstd_max: int = 2, 
+        logstd_hard_clip: bool=True, 
         device: Union[str, int, torch.device]="cpu",
         *, 
         ensemble_size: int = 1, 
@@ -545,7 +555,7 @@ class ClippedGaussianActor(GaussianActor):
         share_hidden_layer: Union[Sequence[bool], bool] = False, 
     ) -> None:
         super().__init__(
-            backend, input_dim, output_dim, reparameterize, conditioned_logstd, fix_logstd, logstd_min, logstd_max, device,  
+            backend, input_dim, output_dim, reparameterize, conditioned_logstd, fix_logstd, logstd_min, logstd_max, logstd_hard_clip, device,  
             ensemble_size=ensemble_size, 
             hidden_dims=hidden_dims, 
             norm_layer=norm_layer, 
@@ -601,7 +611,7 @@ class ClippedGaussianActor(GaussianActor):
         :param state: state of the environment.
         :param action: action to be evaluated.
         """
-        mean, logstd = self(obs)
+        mean, logstd = self.forward(obs)
         mean = torch.tanh(mean)
         dist = Normal(mean, logstd.exp())
         info = {"dist": dist} if return_dist else {}
