@@ -154,9 +154,3 @@ class XSACPolicy(BasePolicy):
         
         return metrics
     
-    
-        
-        
-
-        
-    
