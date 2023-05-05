@@ -102,7 +102,7 @@ class XSACPolicy(BasePolicy):
     
     def update(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         obss, actions, next_obss, rewards, terminals = \
-            itemgetter("observations", "actions", "next_observations", "rewards", "terminals")(batch)
+            [convert_to_tensor(t, self.device) for t in itemgetter("observations", "actions", "next_observations", "rewards", "terminals")(batch)]
         metrics = {}
     
         # update Q
@@ -115,7 +115,7 @@ class XSACPolicy(BasePolicy):
         
         # get Q value for subsequent updates
         new_action, new_logprob, *_= self.actor.sample(obss)
-        new_q_pred = self.critic_q(obss, new_action).min[0][0]
+        new_q_pred = self.critic_q(obss, new_action).min(0)[0]
         
         # update V
         if self._steps % self._critic_v_update_freq == 0:

@@ -16,11 +16,11 @@ from offlinerllib.utils.eval import eval_online_policy
 
 args = parse_args()
 if args.env_type == "dmc":
-    args.env = "-".join([args.domain, args.task, "v1"])
+    args.env = "-".join([args.domain.title(), args.task.title(), "v1"])
 elif args.env_type == "mujoco":
     args.env = args.task
 exp_name = "_".join([args.env, "seed"+str(args.seed)]) 
-logger = CompositeLogger(log_path=f"./log/xsac//{args.name}", name=exp_name, loggers_config={
+logger = CompositeLogger(log_path=f"./log/xsac/{args.name}", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
     "TensorboardLogger": {"activate": not args.debug}, 
     "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
@@ -65,6 +65,7 @@ policy = XSACPolicy(
     actor=actor, critic_q=critic_q, critic_v=critic_v, 
     loss_temperature=args.loss_temperature, 
     actor_update_freq=args.actor_update_freq, target_update_freq=args.target_update_freq, 
+    critic_q_update_freq=args.critic_q_update_freq, critic_v_update_freq=args.critic_v_update_freq, 
     alpha=(-float(action_shape), args.learning_rate) if args.auto_alpha else args.alpha, 
     tau=args.tau, 
     discount=args.discount, 

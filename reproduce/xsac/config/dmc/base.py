@@ -20,6 +20,8 @@ actor_hidden_dims = [1024, 1024]
 critic_q_hidden_dims = [1024, 1024]
 critic_v_hidden_dims = [1024, 1024]
 
+num_epoch = 2000
+step_per_epoch = 1000
 batch_size = 1024
 eval_interval = 10
 eval_episode = 10
@@ -36,3 +38,6 @@ class wandb(NameSpace):
 debug = False
 
 loss_temperature = 10.0
+
+actor_update_freq = target_update_freq = 2
+critic_q_update_freq = critic_v_update_freq = 1

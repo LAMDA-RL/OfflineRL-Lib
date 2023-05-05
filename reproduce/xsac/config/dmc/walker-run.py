@@ -1,5 +1,5 @@
 from reproduce.xsac.config.dmc.base import *
 
-domain = "cheetah"
+domain = "walker"
 task = "run"
 loss_temperature = 2.0
