@@ -6,6 +6,7 @@ from tqdm import trange
 from UtilsRL.exp import parse_args, setup
 from UtilsRL.logger import CompositeLogger
 from UtilsRL.rl.buffer import TransitionSimpleReplay
+from UtilsRL.env import make_dmc
 
 from offlinerllib.module.actor import SquashedGaussianActor
 from offlinerllib.module.critic import Critic
@@ -14,28 +15,38 @@ from offlinerllib.policy.model_free import SACPolicy
 from offlinerllib.utils.eval import eval_online_policy
 
 args = parse_args()
-exp_name = "_".join([args.task, "seed"+str(args.seed)]) 
-logger = CompositeLogger(log_path=f"./log/sac/online/{args.name}", name=exp_name, loggers_config={
+if args.env_type == "dmc":
+    args.env = "-".join([args.domain.title(), args.task.title(), "v1"])
+elif args.env_type == "mujoco":
+    args.env = args.task
+exp_name = "_".join([args.env, "seed"+str(args.seed)]) 
+logger = CompositeLogger(log_path=f"./log/sac/{args.name}", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
     "TensorboardLogger": {"activate": not args.debug}, 
     "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
 })
 setup(args, logger)
 
-env = gym.make(args.task)
-eval_env = gym.make(args.task)
+if args.env_type == "dmc":
+    env = make_dmc(domain_name=args.domain, task_name=args.task)
+    eval_env = make_dmc(domain_name=args.domain, task_name=args.task)
+else:
+    env = gym.make(args.env)
+    eval_env = gym.make(args.env)
+
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
 
-actor_backend = MLP(input_dim=obs_shape, hidden_dims=args.actor_hidden_dims)
-if args.actor_type == "SquashedGaussianActor":
-    actor = SquashedGaussianActor(
-        backend=actor_backend, 
-        input_dim=args.actor_hidden_dims[-1], 
-        output_dim=action_shape, 
-        conditioned_logstd=True, 
-        reparameterize=True
-    ).to(args.device)
+actor = SquashedGaussianActor(
+    backend=torch.nn.Identity(), 
+    input_dim=obs_shape, 
+    output_dim=action_shape, 
+    conditioned_logstd=True, 
+    reparameterize=True, 
+    logstd_min=args.policy_logstd_min, 
+    logstd_max=args.policy_logstd_max, 
+    hidden_dims=args.actor_hidden_dims
+).to(args.device)
     
 critic_q = Critic(
     backend=torch.nn.Identity(), 
@@ -49,6 +60,7 @@ policy = SACPolicy(
     tau=args.tau, 
     discount=args.discount, 
     alpha=(-float(action_shape), args.alpha_lr) if args.auto_alpha else args.alpha, 
+    target_update_freq=args.target_update_freq, 
     device=args.device
 ).to(args.device)
 policy.configure_optimizers(args.actor_lr, args.critic_lr)
@@ -115,4 +127,4 @@ for i_epoch in trange(1, args.num_epoch+1):
         }, step=i_epoch)
     
     if i_epoch % args.save_interval == 0:
-        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/sac/online/{args.name}/{args.task}/seed{args.seed}/policy/")
+        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/sac/{args.name}/{args.env}/seed{args.seed}/policy/")

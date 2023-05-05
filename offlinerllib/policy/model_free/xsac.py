@@ -152,5 +152,6 @@ class XSACPolicy(BasePolicy):
             for o, n in zip(self.critic_v_target.parameters(), self.critic_v.parameters()):
                 o.data.copy_(o.data * (1.0 - self._tau) + n.data * self._tau)
         
+        self._steps += 1
         return metrics
     

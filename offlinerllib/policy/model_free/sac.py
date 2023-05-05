@@ -23,6 +23,7 @@ class SACPolicy(BasePolicy):
         tau: float = 0.005,
         discount: float = 0.99,
         alpha: Union[float, Tuple[float, float]] = 0.2,
+        target_update_freq: int=1, 
         device: Union[str, torch.device] = "cpu"
     ) -> None:
         super().__init__()
@@ -44,6 +45,8 @@ class SACPolicy(BasePolicy):
 
         self._tau = tau
         self._discount = discount
+        self._target_update_freq = target_update_freq
+        self._steps = 0
 
         self.to(device)
 
@@ -130,9 +133,11 @@ class SACPolicy(BasePolicy):
             alpha_loss = 0
         metrics["misc/alpha"] = self._alpha.item()
 
-        self._sync_weight()
+        if self._steps % self._target_update_freq == 0:
+            self._sync_weight()
 
         # update info
+        self._steps += 1
         metrics.update({
             "loss/actor": actor_loss.item(),
             "loss/critic": critic_loss.item(),

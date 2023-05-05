@@ -6,15 +6,14 @@ max_buffer_size = 1000000
 discount = 0.99
 tau = 0.005
 alpha = 0.2
+auto_alpha = True
 reward_scale = 1.0
 
 critic_hidden_dims = [256, 256]
 critic_lr = 0.0003
 actor_hidden_dims = [256, 256]
 actor_lr = 0.0003
-actor_type = "SquashedGaussianActor"
 
-auto_alpha = True
 alpha_lr = 0.0003
 
 num_epoch = 3000
@@ -29,7 +28,12 @@ warmup_epoch = 2
 random_policy_epoch = 5
 max_trajectory_length = 1000
 
-name = "original"
+policy_logstd_min = -20
+policy_logstd_max = 2
+target_update_freq = 1
+
+env_type = "mujoco"
+name = "mujoco"
 class wandb(NameSpace):
     entity = None
     project = None
