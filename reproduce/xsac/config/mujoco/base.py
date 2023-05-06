@@ -11,18 +11,17 @@ alpha = 0.2
 auto_alpha = True  # this will dominate alpha
 
 clip_max = 10
-target_update_freq = 2
 learning_rate = 1e-4
 warmup_epoch = 2
 random_policy_epoch = 5
 
-actor_hidden_dims = [1024, 1024]
-critic_q_hidden_dims = [1024, 1024]
-critic_v_hidden_dims = [1024, 1024]
+actor_hidden_dims = [256, 256]
+critic_q_hidden_dims = [256, 256]
+critic_v_hidden_dims = [256, 256]
 
 num_epoch = 3000
 step_per_epoch = 1000
-batch_size = 1024
+batch_size = 256
 eval_interval = 10
 eval_episode = 10
 save_interval = 50
@@ -39,5 +38,5 @@ debug = False
 
 loss_temperature = 10.0
 
-actor_update_freq = target_update_freq = 2
+actor_update_freq = target_update_freq = 1
 critic_q_update_freq = critic_v_update_freq = 1
