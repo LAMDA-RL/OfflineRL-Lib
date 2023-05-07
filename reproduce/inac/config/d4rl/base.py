@@ -26,3 +26,5 @@ class wandb(NameSpace):
     project = None
 
 debug = False
+
+logstd_hard_clip = True

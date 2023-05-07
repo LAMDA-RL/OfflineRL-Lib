@@ -35,6 +35,7 @@ actor = ClippedGaussianActor(
     conditioned_logstd=False, 
     logstd_min=-6, 
     logstd_max=0,
+    logstd_hard_clip=args.logstd_hard_clip, 
     hidden_dims=args.hidden_dims, 
     device=args.device
 ).to(args.device)
@@ -45,7 +46,8 @@ behavior = ClippedGaussianActor(
     reparameterize=True, 
     conditioned_logstd=False, 
     logstd_min=-6, 
-    logstd_max=0, 
+    logstd_max=0,
+    logstd_hard_clip=args.logstd_hard_clip,
     hidden_dims=args.hidden_dims, 
     device=args.device
 ).to(args.device)
