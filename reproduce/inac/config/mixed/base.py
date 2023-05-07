@@ -38,3 +38,5 @@ num_data = 1000_000
 ratio = 0.5
 keep_traj = True
 reward_norm = "std"
+
+logstd_hard_clip = False

@@ -27,4 +27,4 @@ class wandb(NameSpace):
 
 debug = False
 
-logstd_hard_clip = True
+logstd_hard_clip = False
