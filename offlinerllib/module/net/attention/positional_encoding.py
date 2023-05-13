@@ -12,8 +12,9 @@ class SinusoidEncoding(PositionalEncoding):
         super().__init__()
 
         # same size with input matrix (for adding with input matrix)
-        self.encoding = torch.zeros(pos_len, embed_dim)
-        self.encoding.requires_grad = False  # we don't need to compute gradient
+        self.register_buffer("encoding", torch.zeros(pos_len, embed_dim))
+        # self.encoding = torch.zeros(pos_len, embed_dim)
+        # self.encoding.requires_grad = False  # we don't need to compute gradient
 
         pos = torch.arange(0, pos_len)
         pos = pos.float().unsqueeze(dim=1)
@@ -28,7 +29,8 @@ class SinusoidEncoding(PositionalEncoding):
         # compute positional encoding to consider positional information of words
 
     def forward(self, x):
-        return torch.gather(self.encoding, 0, x).detach()
+        B, L = x.shape
+        return self.encoding[x.reshape(-1)].reshape(B, L, -1)
 
 
 class PositionalEmbedding(PositionalEncoding):
