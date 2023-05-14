@@ -38,7 +38,11 @@ class PositionalEmbedding(PositionalEncoding):
     Direct embedding.
     """
     def __init__(self, embed_dim, pos_len):
-        super().__init__(num_embeddings=pos_len, embedding_dim=embed_dim)
+        super().__init__()
+        self.embedding = torch.nn.Embedding(pos_len, embed_dim)
+    
+    def forward(self, x):
+        return self.embedding(x)
 
 
 class ZeroEncoding(PositionalEncoding):

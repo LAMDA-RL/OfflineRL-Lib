@@ -9,6 +9,13 @@ class PositionalEncoding(nn.Module):
     def forward(self, *args, **kwargs):
         raise NotImplementedError
     
+    
+class NoDecayParameter(nn.Parameter):
+    pass
+
+class DecayParameter(nn.Parameter):
+    pass
+    
 
 class BaseTransformer(nn.Module):
     def __init__(self, *args, **kwargs):
@@ -23,8 +30,8 @@ class BaseTransformer(nn.Module):
         # need / needn't weight decay, to support for more flexible downstream application
         decay = set()
         no_decay = set()
-        whitelist_weight_modules = (torch.nn.Linear, torch.nn.MultiheadAttention)
-        blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.Embedding, PositionalEncoding)
+        whitelist_weight_modules = (torch.nn.Linear, torch.nn.MultiheadAttention, DecayParameter)
+        blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.Embedding, PositionalEncoding, NoDecayParameter)
         for mn, m in self.named_modules():
             for pn, p in m.named_parameters():
                 fpn = '%s.%s' % (mn, pn) if mn else pn # full param name
@@ -40,6 +47,10 @@ class BaseTransformer(nn.Module):
                 elif pn.endswith('weight') and isinstance(m, blacklist_weight_modules):
                     # weights of blacklist modules will NOT be weight decayed
                     no_decay.add(fpn)
+                elif isinstance(p, DecayParameter):
+                    decay.add(fpn)
+                elif isinstance(p, NoDecayParameter):
+                    no_decay.add(fpn)
             
         # validate that we considered every parameter
         param_dict = {pn: p for pn, p in self.named_parameters()}
@@ -50,3 +61,4 @@ class BaseTransformer(nn.Module):
                                                     % (str(param_dict.keys() - union_params), )
 
         return [param_dict[pn] for pn in sorted(list(decay))], [param_dict[pn] for pn in sorted(list(no_decay))]
+

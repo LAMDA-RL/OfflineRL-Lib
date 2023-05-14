@@ -5,7 +5,6 @@ import torch.nn as nn
 
 from offlinerllib.module.net.attention.gpt2 import GPT2
 
-
 class DecisionTransformer(GPT2):
     def __init__(
         self, 
