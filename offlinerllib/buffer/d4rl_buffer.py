@@ -95,6 +95,7 @@ class D4RLTrajectoryBuffer(Buffer, IterableDataset):
         self.rewards = np.asarray([t["rewards"] for t in traj])
         self.terminals = np.asarray([t["terminals"] for t in traj])
         self.next_observations = np.asarray([t["next_observations"] for t in traj])
+        self.returns = np.asarray([t["returns"] for t in traj])
         self.masks = np.asarray([t["masks"] for t in traj])
         self.timesteps = np.arange(self.max_len)
 
@@ -108,6 +109,7 @@ class D4RLTrajectoryBuffer(Buffer, IterableDataset):
             "rewards": self.rewards[traj_idx, start_idx:start_idx+self.seq_len], 
             "terminals": self.terminals[traj_idx, start_idx:start_idx+self.seq_len], 
             "next_observations": self.next_observations[traj_idx, start_idx:start_idx+self.seq_len], 
+            "returns": self.returns[traj_idx, start_idx:start_idx+self.seq_len], 
             "masks": self.masks[traj_idx, start_idx:start_idx+self.seq_len], 
             "timesteps": self.timesteps[start_idx:start_idx+self.seq_len]
         }
