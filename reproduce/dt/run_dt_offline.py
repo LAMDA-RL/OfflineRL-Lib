@@ -13,7 +13,7 @@ from offlinerllib.utils.eval import eval_decision_transformer
 
 args = parse_args()
 exp_name = "_".join([args.task, "seed"+str(args.seed)]) 
-logger = CompositeLogger(log_path=f"./log/dt/offline/{args.name}", name=exp_name, loggers_config={
+logger = CompositeLogger(log_path=f"./log/dt/d4rl/{args.name}", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
     "TensorboardLogger": {"activate": not args.debug}, 
     "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
@@ -73,6 +73,6 @@ for i_epoch in trange(1, args.max_epoch+1):
         logger.log_scalars("Eval", eval_metrics, step=i_epoch)
         
     if i_epoch % args.save_interval == 0:
-        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/dt/offline/{args.name}/{args.task}/seed{args.seed}/policy/")
+        logger.log_object(name=f"policy_{i_epoch}.pt", object=policy.state_dict(), path=f"./out/dt/d4rl/{args.name}/{args.task}/seed{args.seed}/policy/")
     
     
