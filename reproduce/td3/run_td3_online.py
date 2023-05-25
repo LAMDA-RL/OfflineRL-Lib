@@ -105,8 +105,11 @@ for i_epoch in trange(1, args.num_epoch+1):
             all_traj_lengths.append(cur_traj_length)
             cur_traj_length = cur_traj_return = 0
         
-        batch_data = buffer.random_batch(args.batch_size)
-        train_metrics = policy.update(batch_data)
+        if i_epoch <= args.random_policy_epoch+1:
+            train_metrics = {}
+        else:
+            batch_data = buffer.random_batch(args.batch_size)
+            train_metrics = policy.update(batch_data)
     
     if i_epoch % args.eval_interval == 0:
         eval_metrics = eval_online_policy(eval_env, policy, args.eval_episode, seed=args.seed)
