@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class GaussianNoise:
+class WhiteNoise:
     """The vanilla Gaussian process, for exploration in DDPG by default."""
 
     def __init__(self, mu=0.0, sigma=1.0):
@@ -9,8 +9,8 @@ class GaussianNoise:
         assert 0 <= sigma, "Noise std should not be negative."
         self._sigma = sigma
 
-    def __call__(self, size):
-        return np.random.normal(self._mu, self._sigma, size)
+    def __call__(self, shape):
+        return np.random.normal(self._mu, self._sigma, shape)
 
 
 class OUNoise:

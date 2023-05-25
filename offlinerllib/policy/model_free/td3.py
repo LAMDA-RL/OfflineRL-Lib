@@ -58,10 +58,10 @@ class TD3Policy(BasePolicy):
         deterministic: bool=False
     ) -> np.ndarray:
         obs = torch.from_numpy(obs).float().unsqueeze(0).to(self.device)
-        action, *_ = self.actor.sample(obs, deterministic)
+        action = self.actor.sample(obs, deterministic)[0].squeeze().cpu().numpy()
         if not deterministic and self._exploration_noise is not None:
             action = np.clip(action + self._exploration_noise(action.shape), -self._max_action, self._max_action)
-        return action.squeeze().cpu().numpy()
+        return action
     
     def critic_loss(self, batch: Dict[str, Any]) -> Tuple[torch.Tensor, Dict[str, Any]]:
         obss, actions, next_obss, rewards, terminals = \
