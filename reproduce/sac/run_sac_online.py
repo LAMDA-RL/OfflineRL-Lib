@@ -52,7 +52,7 @@ critic_q = Critic(
     backend=torch.nn.Identity(), 
     input_dim=obs_shape+action_shape, 
     hidden_dims=args.critic_hidden_dims, 
-    ensemble_size=2
+    ensemble_size=args.critic_q_num
 ).to(args.device)
 
 policy = SACPolicy(

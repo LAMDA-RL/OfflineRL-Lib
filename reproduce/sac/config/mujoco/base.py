@@ -39,3 +39,5 @@ class wandb(NameSpace):
     project = None
 
 debug = False
+
+critic_q_num = 2
