@@ -62,7 +62,7 @@ class SACPolicy(BasePolicy):
     ) -> np.ndarray:
         obs = torch.from_numpy(obs).float().unsqueeze(0).to(self.device)
         action, _, _ = self.actor.sample(obs, deterministic)
-        return action.squeeze().cpu().numpy()
+        return action.squeeze(0).cpu().numpy()
 
     def _actor_loss(
         self,

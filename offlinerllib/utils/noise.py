@@ -10,7 +10,7 @@ class WhiteNoise:
         self._sigma = sigma
 
     def __call__(self, shape):
-        return np.random.normal(self._mu, self._sigma, shape)
+        return np.random.normal(self._mu, self._sigma, shape).astype(np.float32)
 
 
 class OUNoise:

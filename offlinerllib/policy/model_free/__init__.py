@@ -9,3 +9,4 @@ from .td3bc import TD3BCPolicy
 from .awac import AWACPolicy
 from .inac import InACPolicy
 from .xsac import XSACPolicy
+from .td7 import TD7Policy

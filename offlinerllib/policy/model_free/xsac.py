@@ -76,7 +76,7 @@ class XSACPolicy(BasePolicy):
     ) -> np.ndarray:
         obs = torch.from_numpy(obs).float().unsqueeze(0).to(self.device)
         action, _, _ = self.actor.sample(obs, deterministic)
-        return action.squeeze().cpu().numpy()
+        return action.squeeze(0).cpu().numpy()
     
     def _critic_q_loss(self, obss, actions, next_obss, rewards, terminals) -> Tuple[torch.Tensor, Dict[str, float]]:
         with torch.no_grad():
