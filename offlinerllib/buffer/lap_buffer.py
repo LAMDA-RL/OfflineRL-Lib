@@ -49,7 +49,7 @@ class LAPBuffer(TransitionSimpleReplay):
         # update credential
         if self._prioritized:
             self.sum_tree.add(np.full(shape=[data_len, ], fill_value=self.max_metric_value))
-            self.min_tree.add(np.full(shape=[data_len, ], fill_value=self.max_metric_value))
+            self.min_tree.add(np.full(shape=[data_len, ], fill_value=-self.max_metric_value))
         
     def random_batch(self, batch_size: int, return_idx: bool=True):
         if len(self) == 0:
@@ -78,4 +78,10 @@ class LAPBuffer(TransitionSimpleReplay):
         metric_value = self.metric_fn(metric_value)
         self.max_metric_value = max(np.max(metric_value), self.max_metric_value)
         self.sum_tree.update(batch_idx, metric_value)
-        self.min_tree.update(batch_idx, metric_value)
+        self.min_tree.update(batch_idx, -metric_value)
+        
+    def reset_max_priority(self):
+        max_priority = - self.min_tree.min()
+        self.max_metric_value = max_priority
+
+    

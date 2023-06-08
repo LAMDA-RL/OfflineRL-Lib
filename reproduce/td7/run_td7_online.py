@@ -125,6 +125,7 @@ for i_epoch in trange(1, args.num_epoch+1):
             all_traj_returns.append(cur_traj_return)
             all_traj_lengths.append(cur_traj_length)
             cur_traj_length = cur_traj_return = 0
+            buffer.reset_max_priority()
             
             if (i_epoch-1) * args.step_per_epoch + i_step >= args.step_before_training:
                 allow_train = True
