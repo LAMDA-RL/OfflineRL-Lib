@@ -1,6 +1,5 @@
 import gym
 import numpy as np
-import torch
 import wandb
 from tqdm import trange
 from UtilsRL.exp import parse_args, setup
@@ -20,7 +19,7 @@ if args.env_type == "dmc":
 elif args.env_type == "mujoco":
     args.env = args.task
 exp_name = "_".join([args.env, "seed"+str(args.seed)]) 
-logger = CompositeLogger(log_path=f"./log/td3/{args.name}", name=exp_name, loggers_config={
+logger = CompositeLogger(log_path=f"./log/td7/{args.name}", name=exp_name, loggers_config={
     "FileLogger": {"activate": not args.debug}, 
     "TensorboardLogger": {"activate": not args.debug}, 
     "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
@@ -53,7 +52,7 @@ critic = TD7Critic(
 encoder = TD7Encoder(
     state_dim=obs_shape, 
     action_dim=action_shape, 
-    embedding_dim=args.embeddin_dim, 
+    embedding_dim=args.embedding_dim, 
     hidden_dim=args.hidden_dim
 ).to(args.device)
 
@@ -94,7 +93,7 @@ obs, terminal = env.reset(), False
 cur_traj_length = cur_traj_return = 0
 all_traj_lengths = [0]
 all_traj_returns = [0]
-allow_train = True
+allow_train = False
 for i_epoch in trange(1, args.num_epoch+1):
     for i_step in range(args.step_per_epoch):
         if not allow_train:
@@ -118,6 +117,8 @@ for i_epoch in trange(1, args.num_epoch+1):
             batch, batch_idx = buffer.random_batch(args.batch_size, return_idx=True)
             train_metrics, new_td_error = policy.update(batch)
             buffer.batch_update(batch_idx, new_td_error)
+        else:
+            train_metrics = {}
         
         if ep_finished:
             obs = env.reset()
@@ -130,7 +131,7 @@ for i_epoch in trange(1, args.num_epoch+1):
     
     if i_epoch % args.eval_interval == 0:
         eval_metrics = eval_online_policy(eval_env, policy, args.eval_episode, seed=args.seed)
-        logger.info(f"Episode {i_epoch}: \n{eval_metrics}")
+        logger.info(f"Epoch {i_epoch}: \n{eval_metrics}")
     
     if i_epoch % args.log_interval == 0:
         logger.log_scalars("", train_metrics, step=i_epoch)

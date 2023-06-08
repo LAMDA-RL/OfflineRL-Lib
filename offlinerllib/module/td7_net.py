@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from offlinerllib.module.actor import DeterministicActor
+from offlinerllib.module.actor import BaseActor
 from offlinerllib.module.net.mlp import EnsembleLinear
 
 class AvgL1Norm(nn.Module):
@@ -23,7 +23,7 @@ class TD7Encoder(nn.Module):
         action_dim: int, 
         embedding_dim: int, 
         hidden_dim: int, 
-        activation: nn.ELU
+        activation=nn.ELU
     ) -> None:
         super().__init__()
         
@@ -42,6 +42,7 @@ class TD7Encoder(nn.Module):
             nn.Linear(hidden_dim, hidden_dim), 
             activation(), 
             nn.Linear(hidden_dim, embedding_dim)
+            # we don't add AvgL1Norm here because it is regressed towards normed zs
         )
         
     def zs(self, state: torch.Tensor):
@@ -52,14 +53,14 @@ class TD7Encoder(nn.Module):
         return self.zsa_layers(out)
     
 
-class TD7Actor(DeterministicActor):
+class TD7Actor(BaseActor):
     def __init__(
         self, 
         state_dim: int, 
         action_dim: int, 
         embedding_dim: int, 
         hidden_dim: int, 
-        activation: nn.ReLU
+        activation=nn.ReLU
     ) -> None:
         super().__init__()
         self.state_layers = nn.Sequential(
@@ -95,6 +96,7 @@ class TD7Critic(nn.Module):
         activation=nn.ReLU, 
     ) -> None:
         super().__init__()
+        self.critic_num = critic_num
         self.sa_layers = nn.Sequential(
             EnsembleLinear(state_dim+action_dim, hidden_dim, ensemble_size=critic_num), 
             AvgL1Norm()
@@ -102,9 +104,9 @@ class TD7Critic(nn.Module):
         self.layers = nn.Sequential(
             EnsembleLinear(2*embedding_dim+hidden_dim, hidden_dim, ensemble_size=critic_num),
             activation(), 
-            EnsembleLinear(hidden_dim, hidden_dim), 
+            EnsembleLinear(hidden_dim, hidden_dim, ensemble_size=critic_num), 
             activation(), 
-            EnsembleLinear(hidden_dim, 1) 
+            EnsembleLinear(hidden_dim, 1, ensemble_size=critic_num) 
         )
 
     def forward(
@@ -116,7 +118,11 @@ class TD7Critic(nn.Module):
     ) -> torch.Tensor:
         out = torch.concat([state, action], dim=-1)
         out = self.sa_layers(out)
-        out = torch.concat([out, zsa, zs], dim=-1)
+        out = torch.concat([
+            out, 
+            zsa.repeat([self.critic_num]+[1]*len(zsa.shape)), 
+            zs.repeat([self.critic_num]+[1]*len(zs.shape))
+        ], dim=-1)
         out = self.layers(out)
         return out
         

@@ -58,8 +58,8 @@ class TD7Policy(BasePolicy):
         self._max_action = max_action
         self._max_target_q = 0
         self._min_target_q = 0
-        self._max_target_q_uptodate = 0
-        self._min_target_q_uptodate = 0
+        self._max_target_q_uptodate = -1e8
+        self._min_target_q_uptodate = 1e8
         self._step = 0
         
         self.to(device)
@@ -103,7 +103,7 @@ class TD7Policy(BasePolicy):
         metrics.update(encoder_metrics)
         
         ###### update critic #######
-        critic_metrics = self.update_critic(batch)
+        critic_metrics, priority = self.update_critic(batch)
         metrics.update(critic_metrics)
 
         ###### update actor ########
@@ -115,11 +115,13 @@ class TD7Policy(BasePolicy):
 
         if self._step % self._target_update_interval == 0:
             self.actor_target.load_state_dict(self.actor.state_dict())
-            self.critic_target.load_state_dict(self.critic_target.state_dict())
+            self.critic_target.load_state_dict(self.critic.state_dict())
             self.fixed_encoder_target.load_state_dict(self.fixed_encoder.state_dict())
             self.fixed_encoder.load_state_dict(self.encoder.state_dict())
             self._max_target_q = self._max_target_q_uptodate
             self._min_target_q = self._min_target_q_uptodate
+            
+        return metrics, priority
 
     def update_encoder(self, batch):
         obss, actions, next_obss = itemgetter("observations", "actions", "next_observations")(batch)
@@ -137,10 +139,10 @@ class TD7Policy(BasePolicy):
         obss, actions, next_obss, rewards, terminals = \
             itemgetter("observations", "actions", "next_observations", "rewards", "terminals")(batch)
         with torch.no_grad():
-            fixed_target_next_zs = self.fixed_encoder_target(next_obss)
+            fixed_target_next_zs = self.fixed_encoder_target.zs(next_obss)
             noise = (torch.randn_like(actions) * self._policy_noise).clamp(-self._noise_clip, self._noise_clip)
-            next_actions = (self.actor_target.sample(next_obss, fixed_target_next_zs) + noise).clamp(-self._max_action, self._max_action)
-            fixed_target_next_zsa = self.fixed_encoder_target(fixed_target_next_zs, next_actions)
+            next_actions = (self.actor_target.sample(next_obss, fixed_target_next_zs)[0] + noise).clamp(-self._max_action, self._max_action)
+            fixed_target_next_zsa = self.fixed_encoder_target.zsa(fixed_target_next_zs, next_actions)
             q_target = self.critic_target(next_obss, next_actions, fixed_target_next_zsa, fixed_target_next_zs).min(0)[0]
             q_target = rewards + self._discount * (1-terminals) * q_target.clamp(self._min_target_q, self._max_target_q)
             # track max/min target
@@ -148,27 +150,26 @@ class TD7Policy(BasePolicy):
             self._min_target_q_uptodate = min(self._min_target_q_uptodate, q_target.min().item())
             # inference for current obs/action embedding
             fixed_zs = self.fixed_encoder.zs(obss)
-            fixed_zsa = self.fixed_encoder.zsa(obss, actions)
+            fixed_zsa = self.fixed_encoder.zsa(fixed_zs, actions)
         q_pred = self.critic(obss, actions, fixed_zsa, fixed_zs)
-        critic_loss = torch.nn.functional.huber_loss(
-            q_pred, 
-            q_target.unsqueeze(0), 
-            delta=1.0
-        ) * 2 # this is because we did a mean reduction over the twin Q
+        td = (q_target - q_pred).abs()
+        critic_loss = torch.where(td < 1.0, 0.5 * td.pow(2), td).sum(0).mean()
         
         self.critic_optim.zero_grad()
         critic_loss.backward()
         self.critic_optim.step()
+
+        priority = td.max(dim=0)[0].detach().squeeze(-1).cpu().numpy()
         return {
             "loss/critic_loss": critic_loss.item(), 
             "misc/q_pred": q_pred.mean().item(), 
             "misc/max_q_uptodate": self._max_target_q_uptodate
-        }
+        }, priority
         
     def update_actor(self, batch):
         obss, actions = itemgetter("observations", "actions")(batch)
         fixed_zs = self.fixed_encoder.zs(obss)
-        new_actions = self.actor.sample(obss, fixed_zs)
+        new_actions = self.actor.sample(obss, fixed_zs)[0]
         fixed_zsa = self.fixed_encoder.zsa(fixed_zs, new_actions)
         q = self.critic(obss, new_actions, fixed_zsa, fixed_zs)
 
