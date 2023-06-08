@@ -53,7 +53,7 @@ class TD7Policy(BasePolicy):
         self._policy_noise = policy_noise
         self._noise_clip = noise_clip
         self._exploration_noise = exploration_noise
-        self._lam = 0.0 if self._offline else lam
+        self._lam = 0.0 if not self._offline else lam
         self._discount = discount
         self._max_action = max_action
         self._max_target_q = 0
