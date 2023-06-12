@@ -7,7 +7,8 @@ from UtilsRL.data_structure import MinTree as CminTree
 from UtilsRL.rl.buffer import TransitionSimpleReplay
 
 def lap_propotional(metric_value, alpha, min_priority):
-    return np.maximum(np.abs(metric_value) ** alpha, min_priority)
+    return np.power(np.clip(metric_value, a_min=min_priority, a_max=None), alpha)
+
 
 class LAPBuffer(TransitionSimpleReplay):
     def __init__(
@@ -58,8 +59,7 @@ class LAPBuffer(TransitionSimpleReplay):
             if batch_size is None:
                 raise NotImplementedError(f"you must specify a batch size for PER for now.")
             else:
-                segment = 1 / batch_size
-                batch_target = (np.random.random(size=[batch_size, ]) + np.arange(0, batch_size))*segment
+                batch_target = np.random.random(size=[batch_size, ])
                 batch_idx, batch_p = self.sum_tree.find(batch_target)
                 batch_idx = np.asarray(batch_idx)
             batch_data = {
@@ -84,4 +84,3 @@ class LAPBuffer(TransitionSimpleReplay):
         max_priority = - self.min_tree.min()
         self.max_metric_value = max_priority
 
-    
