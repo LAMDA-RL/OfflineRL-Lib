@@ -35,6 +35,7 @@ noise_clip = 0.5
 lam = 0.1
 
 use_checkpoint = False
+use_lap_buffer = True
 
 normalize_obs = False
 normalize_reward = False

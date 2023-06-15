@@ -69,7 +69,7 @@ buffer = LAPBuffer(
         "rewards": {"shape": [1, ], "dtype": np.float32, }, 
         "terminals": {"shape": [1, ], "dtype": np.float32, }, 
     }, 
-    prioritized=True, 
+    prioritized=args.use_lap_buffer, 
     alpha=0.4, 
     min_priority=1.0
 )

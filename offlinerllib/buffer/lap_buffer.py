@@ -58,29 +58,33 @@ class LAPBuffer(TransitionSimpleReplay):
         else:
             if batch_size is None:
                 raise NotImplementedError(f"you must specify a batch size for PER for now.")
-            else:
+            elif self._prioritized:
                 batch_target = np.random.random(size=[batch_size, ])
                 batch_idx, batch_p = self.sum_tree.find(batch_target)
                 batch_idx = np.asarray(batch_idx)
+            else:
+                batch_idx = np.random.choice(self._size, size=batch_size)
             batch_data = {
                 _key: self.fields[_key][batch_idx] for _key in self.fields
             }
         return (batch_data, batch_idx) if return_idx else batch_data
         
     def batch_update(self, batch_idx, metric_value):
-        batch_idx = np.asarray(batch_idx)
-        if len(batch_idx.shape) == 0:
-            batch_idx = np.asarray([batch_idx, ])
-        metric_value = np.asarray(metric_value)
-        if len(metric_value.shape) == 0:
-            metric_value = np.asarray([metric_value, ])
-        # update crendential
-        metric_value = self.metric_fn(metric_value)
-        self.max_metric_value = max(np.max(metric_value), self.max_metric_value)
-        self.sum_tree.update(batch_idx, metric_value)
-        self.min_tree.update(batch_idx, -metric_value)
+        if self._prioritized:
+            batch_idx = np.asarray(batch_idx)
+            if len(batch_idx.shape) == 0:
+                batch_idx = np.asarray([batch_idx, ])
+            metric_value = np.asarray(metric_value)
+            if len(metric_value.shape) == 0:
+                metric_value = np.asarray([metric_value, ])
+            # update crendential
+            metric_value = self.metric_fn(metric_value)
+            self.max_metric_value = max(np.max(metric_value), self.max_metric_value)
+            self.sum_tree.update(batch_idx, metric_value)
+            self.min_tree.update(batch_idx, -metric_value)
         
     def reset_max_priority(self):
-        max_priority = - self.min_tree.min()
-        self.max_metric_value = max_priority
+        if self._prioritized:
+            max_priority = - self.min_tree.min()
+            self.max_metric_value = max_priority
 
