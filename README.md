@@ -8,19 +8,29 @@ OfflineRL-Lib provides unofficial and benchmarked PyTorch implementations for se
 - [Decision Transformer (DT)](https://arxiv.org/abs/2106.01345)
 - [Advantage-Weighted Actor Critic (AWAC)](https://arxiv.org/abs/2006.09359)
 - [TD3-BC](https://arxiv.org/pdf/2106.06860.pdf)
+- [TD7](https://arxiv.org/abs/2306.02451)
 
-still benchmarking ... 
-- [EDAC](https://arxiv.org/abs/2110.01548)
-- [SAC-N](https://arxiv.org/abs/2110.01548)
-
-under developing (model based algorithms) ...
-- [MOPO](https://arxiv.org/abs/2005.13239)
-- [MAPLE](https://proceedings.neurips.cc/paper/2021/file/470e7a4f017a5476afb7eeb3f8b96f9b-Paper.pdf)
-- [RAMBO](https://arxiv.org/abs/2204.12581)
+For Model-Based algorithms, please check [OfflineRL-Kit](https://github.com/yihaosun1124/OfflineRL-Kit)!
 
 
 ## Benchmark Results
-See [reproduce/benchmark_result.md](https://github.com/typoverflow/OfflineRL-Lib/blob/master/reproduce/benchmark_result.md) for details. 
+<!-- See [reproduce/benchmark_result.md](https://github.com/typoverflow/OfflineRL-Lib/blob/master/reproduce/benchmark_result.md) for details.  -->
+
++ We benchmark and visualize the result via WandB. Click the following WandB links, and group the runs via the entry `task` (for offline experiments) or `env` (for online experiments). 
++ Available Runs
+  + Offline: 
+    + TD7 [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/TD7-D4RL)
+    + XQL [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/XQL-D4RL)
+    + InAC [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/InAC-D4RL)
+    + AWAC [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/AWAC-D4RL)
+    + IQL [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/IQL-D4RL)
+    + TD3BC [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/TD3BC-Offline)
+    + Decision Transformer [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/DecisionTransformer-Offline)
+  + Online Runs
+    + SAC [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/SAC-Online)
+    + TD3 [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/TD3-Online)
+    + TD7 [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/TD7-Online)
+    + XSAC [:chart_with_upwards_trend:](https://wandb.ai/lamda-rl/XSAC-Online)
 
 ## Citing OfflineRL-Lib
 If you use OfflineRL-Lib in your work, please use the following bibtex
