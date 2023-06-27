@@ -1,6 +1,5 @@
 # OfflineRL-Lib
-> 🚧 This repo is not ready for release, benchmarking is ongoing. 🚧
-
+<!-- > 🚧 This repo is not ready for release, benchmarking is ongoing. 🚧 -->
 OfflineRL-Lib provides unofficial and benchmarked PyTorch implementations for selected OfflineRL algorithms, including: 
 - [In-Sample Actor Critic (InAC)](https://arxiv.org/abs/2302.14372)
 - [Extreme Q-Learning (XQL)](https://arxiv.org/abs/2301.02328)
