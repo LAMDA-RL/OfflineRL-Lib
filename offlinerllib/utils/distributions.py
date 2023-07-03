@@ -19,7 +19,7 @@ class TanhNormal(Normal):
                  pre_tanh_value: bool=False, 
                  ):
         if not pre_tanh_value:
-            pre_value = torch.clip(value, -1.0, 1.0)
+            pre_value = torch.clip(value, -1.0+self.epsilon, 1.0-self.epsilon)
             pre_value = 0.5 * (pre_value.log1p() - (-pre_value).log1p())
         else:
             pre_value = value
