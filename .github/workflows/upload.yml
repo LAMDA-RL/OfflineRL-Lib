@@ -15,7 +15,7 @@ jobs:
 
       - name: setup version
         run: |
-          [ "v"`grep -e '[0-9]\.[0-9]\.[0-9]' -o -- offlinerllib/__init__.py` = ${GITHUB_REF##*/} ] && echo "VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV
+          [ "v"`grep -e '[0-9]\.[0-9]\.[0-9]*' -o -- offlinerllib/__init__.py` = ${GITHUB_REF##*/} ] && echo "VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV
         
       - name: build sdist
         run: pipx run build --sdist
