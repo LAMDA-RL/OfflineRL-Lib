@@ -10,7 +10,7 @@ def antmaze_normalize_reward(dataset):
     return dataset, {}
     
 def mujoco_normalize_reward(dataset):
-    split_points = dataset["ends"]
+    split_points = dataset["ends"].copy()
     split_points[-1] = False   # the last traj may be incomplete, so we discard them
     reward = dataset["rewards"]
     returns, lengths = [], []
