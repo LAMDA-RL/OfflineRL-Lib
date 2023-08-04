@@ -126,7 +126,7 @@ def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False, terminat
     if normalize_reward:
         if "antmaze" in task:
             dataset, _ = antmaze_normalize_reward(dataset)
-        elif "halfcheetah" in task or "hopper" in task or "walker2d" in task:
+        elif "halfcheetah" in task or "hopper" in task or "walker2d" in task or "ant" in task:
             dataset, _ = mujoco_normalize_reward(dataset)
     termination_fn = get_termination_fn(task)
     if normalize_obs:

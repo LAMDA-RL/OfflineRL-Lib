@@ -3,7 +3,6 @@ from torch import nn
 
 from offlinerllib.module.net.attention.base import PositionalEncoding
 
-
 class SinusoidEncoding(PositionalEncoding):
     """
     Sinusoid encoding.
