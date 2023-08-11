@@ -126,14 +126,16 @@ def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False, terminat
     if normalize_reward:
         if "antmaze" in task:
             dataset, _ = antmaze_normalize_reward(dataset)
-        elif "halfcheetah" in task or "hopper" in task or "walker2d" in task or "ant" in task:
+        elif "halfcheetah" in task or "hopper" in task or "walker2d" in task or "ant" in task or "humanoid" in task or "swimmer" in task:
             dataset, _ = mujoco_normalize_reward(dataset)
-    termination_fn = get_termination_fn(task)
+    if return_termination_fn:
+        termination_fn = get_termination_fn(task)
     if normalize_obs:
         dataset, info = _normalize_obs(dataset)
         from gym.wrappers.transform_observation import TransformObservation
         env = TransformObservation(env, lambda obs: (obs - info["obs_mean"])/info["obs_std"])
-        termination_fn = get_termination_fn(task, info["obs_mean"], info["obs_std"])
+        if return_termination_fn:
+            termination_fn = get_termination_fn(task, info["obs_mean"], info["obs_std"])
     if return_termination_fn:
         return env, dataset, termination_fn
     else:
