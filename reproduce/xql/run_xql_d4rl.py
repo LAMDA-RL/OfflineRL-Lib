@@ -9,7 +9,7 @@ from offlinerllib.module.actor import ClippedGaussianActor
 from offlinerllib.module.critic import Critic, DoubleCritic
 from offlinerllib.module.net.mlp import MLP
 from offlinerllib.policy.model_free import XQLPolicy
-from offlinerllib.utils.d4rl import get_d4rl_dataset
+from offlinerllib.env.d4rl import get_d4rl_dataset
 from offlinerllib.utils.eval import eval_offline_policy
 
 args = parse_args()

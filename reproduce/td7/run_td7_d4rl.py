@@ -7,7 +7,7 @@ from UtilsRL.logger import CompositeLogger
 from offlinerllib.buffer.lap_buffer import LAPBuffer
 from offlinerllib.module.td7_net import TD7Encoder, TD7Actor, TD7Critic
 from offlinerllib.policy.model_free.td7 import TD7Policy
-from offlinerllib.utils.d4rl import get_d4rl_dataset
+from offlinerllib.env.d4rl import get_d4rl_dataset
 from offlinerllib.utils.eval import eval_offline_policy
 
 args = parse_args()

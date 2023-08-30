@@ -8,7 +8,7 @@ from UtilsRL.logger import CompositeLogger
 from offlinerllib.buffer import D4RLTrajectoryBuffer
 from offlinerllib.module.net.attention.dt import DecisionTransformer
 from offlinerllib.policy.model_free import DecisionTransformerPolicy
-from offlinerllib.utils.d4rl import get_d4rl_dataset
+from offlinerllib.env.d4rl import get_d4rl_dataset
 from offlinerllib.utils.eval import eval_decision_transformer
 
 args = parse_args()

@@ -3,14 +3,12 @@ import numpy as np
 import d4rl
 import torch
 
-from offlinerllib.utils.terminal import get_termination_fn
-
 def antmaze_normalize_reward(dataset):
     dataset["rewards"] -= 1.0
     return dataset, {}
     
 def mujoco_normalize_reward(dataset):
-    split_points = dataset["ends"]
+    split_points = dataset["ends"].copy()
     split_points[-1] = False   # the last traj may be incomplete, so we discard them
     reward = dataset["rewards"]
     returns, lengths = [], []
@@ -26,7 +24,7 @@ def mujoco_normalize_reward(dataset):
     dataset["rewards"] *= 1000
     return dataset, {}
     
-def _normalize_obs(dataset):
+def d4rl_normalize_obs(dataset):
     all_obs = np.concatenate([dataset["observations"], dataset["next_observations"]], axis=0)
     # all_obs = dataset["observations"]
     obs_mean, obs_std = all_obs.mean(0), all_obs.std(0)+1e-3
@@ -57,6 +55,8 @@ def qlearning_dataset(env, dataset=None, terminate_on_end: bool=False, discard_l
             next_observations: An N x dim_obs array of next observations.
             rewards: An N-dim float array of rewards.
             terminals: An N-dim boolean array of "done" or episode termination flags.
+
+    This function is directly borrowed from d4rl, and we add the entry `ends` into the data. 
     """
     if dataset is None:
         dataset = env.get_dataset(**kwargs)
@@ -120,7 +120,14 @@ def qlearning_dataset(env, dataset=None, terminate_on_end: bool=False, discard_l
     }
     
         
-def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False, terminate_on_end: bool=False, discard_last: bool=True, return_termination_fn=False, **kwargs):
+def get_d4rl_dataset(
+    task, 
+    normalize_reward=False, 
+    normalize_obs=False, 
+    terminate_on_end: bool=False, 
+    discard_last: bool=True, 
+    **kwargs
+):
     env = gym.make(task)
     dataset = qlearning_dataset(env, terminate_on_end=terminate_on_end, discard_last=discard_last, **kwargs)
     if normalize_reward:
@@ -128,21 +135,25 @@ def get_d4rl_dataset(task, normalize_reward=False, normalize_obs=False, terminat
             dataset, _ = antmaze_normalize_reward(dataset)
         elif "halfcheetah" in task or "hopper" in task or "walker2d" in task or "ant" in task:
             dataset, _ = mujoco_normalize_reward(dataset)
-    termination_fn = get_termination_fn(task)
     if normalize_obs:
-        dataset, info = _normalize_obs(dataset)
+        dataset, info = d4rl_normalize_obs(dataset)
         from gym.wrappers.transform_observation import TransformObservation
         env = TransformObservation(env, lambda obs: (obs - info["obs_mean"])/info["obs_std"])
-        termination_fn = get_termination_fn(task, info["obs_mean"], info["obs_std"])
-    if return_termination_fn:
-        return env, dataset, termination_fn
-    else:
-        return env, dataset
+    return env, dataset
         
 
 # below is for dataset generation
 @torch.no_grad()
-def gen_d4rl_dataset(task, policy, num_data, policy_is_online=False, random=False, normalize_obs: bool=False, seed=0, **d4rl_kwargs):
+def gen_d4rl_dataset(
+    task, 
+    policy, 
+    num_data, 
+    policy_is_online=False, 
+    random=False, 
+    normalize_obs: bool=False, 
+    seed=0, 
+    **d4rl_kwargs
+):
     if not hasattr(policy, "actor"):
         raise AttributeError("Policy does not have actor member")
     if policy_is_online:
@@ -152,7 +163,7 @@ def gen_d4rl_dataset(task, policy, num_data, policy_is_online=False, random=Fals
         env = gym.make(task)
         dataset = qlearning_dataset(env, **d4rl_kwargs)
         if normalize_obs:
-            dataset, info = _normalize_obs(dataset)
+            dataset, info = d4rl_normalize_obs(dataset)
             transform_fn = lambda obs: (obs - info["obs_mean"]) / (info["obs_std"] + 1e-3)
         else:
             transform_fn = lambda obs: obs
