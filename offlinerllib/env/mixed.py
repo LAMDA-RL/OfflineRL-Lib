@@ -2,7 +2,7 @@ import random
 import gym
 import numpy as np
 
-from offlinerllib.env.d4rl import get_d4rl_dataset, _normalize_obs
+from offlinerllib.env.d4rl import get_d4rl_dataset
 
 def minmax_reward_normalizer(dataset):
     reward = dataset["rewards"]

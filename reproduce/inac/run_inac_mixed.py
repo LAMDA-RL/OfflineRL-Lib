@@ -15,12 +15,12 @@ from offlinerllib.utils.eval import eval_offline_policy
 args = parse_args()
 args.task = "-".join(["mixed", args.agent, args.quality1, args.quality2, str(args.ratio)])
 exp_name = "_".join([args.task, "seed"+str(args.seed)]) 
-logger = CompositeLogger(log_path=f"./log/inac/{args.name}", name=exp_name, loggers_config={
-    "FileLogger": {"activate": not args.debug}, 
-    "TensorboardLogger": {"activate": not args.debug}, 
-    "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
-})
-setup(args, logger)
+logger = CompositeLogger(log_dir=f"./log/inac/{args.name}", name=exp_name, logger_config={
+    "TensorboardLogger": {}, 
+    "WandbLogger": {"config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
+}, activate=not args.debug)
+logger.log_config(args)
+setup(args, logger)  # register args, logger, seed and device
 
 env, dataset = get_mixed_d4rl_mujoco_datasets(
     agent=args.agent, 

@@ -20,11 +20,10 @@ if args.env_type == "dmc":
 elif args.env_type == "mujoco":
     args.env = args.task
 exp_name = "_".join([args.env, "seed"+str(args.seed)]) 
-logger = CompositeLogger(log_path=f"./log/sac/{args.name}", name=exp_name, loggers_config={
-    "FileLogger": {"activate": not args.debug}, 
-    "TensorboardLogger": {"activate": not args.debug}, 
-    "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
-})
+logger = CompositeLogger(log_dir=f"./log/sac/{args.name}", name=exp_name, logger_config={
+    "TensorboardLogger": {}, 
+    "WandbLogger": {"config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
+}, activate=not args.debug)
 setup(args, logger)
 
 if args.env_type == "dmc":
