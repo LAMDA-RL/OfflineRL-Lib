@@ -64,6 +64,7 @@ class EnsembleLinear(nn.Module):
         in_features, 
         out_features, 
         ensemble_size: int = 1,
+        share_input: bool=True, 
         bias: bool = True, 
         device: Optional[Any] = None, 
         dtype: Optional[Any] = None
@@ -73,6 +74,7 @@ class EnsembleLinear(nn.Module):
         self.in_features = in_features
         self.out_features = out_features
         self.ensemble_size = ensemble_size
+        self.share_input = share_input
         self.add_bias = bias
         self.register_parameter("weight", torch.nn.Parameter(torch.empty([ensemble_size, in_features, out_features], **factory_kwargs)))
         if bias:
@@ -95,7 +97,7 @@ class EnsembleLinear(nn.Module):
             bias = 0
         else:
             bias = self.bias
-        if input.shape[0] != self.ensemble_size:
+        if self.share_input:
             res = torch.einsum('...j,bjk->b...k', input, self.weight)
             if self.add_bias:
                 broadcast_length = len(input.shape)-1
