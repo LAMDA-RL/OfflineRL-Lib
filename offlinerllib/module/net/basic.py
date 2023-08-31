@@ -76,41 +76,28 @@ class EnsembleLinear(nn.Module):
         self.ensemble_size = ensemble_size
         self.share_input = share_input
         self.add_bias = bias
-        self.register_parameter("weight", torch.nn.Parameter(torch.empty([ensemble_size, in_features, out_features], **factory_kwargs)))
+        self.register_parameter("weight", torch.nn.Parameter(torch.empty([in_features, out_features, ensemble_size], **factory_kwargs)))
         if bias:
-            self.register_parameter("bias", torch.nn.Parameter(torch.empty([ensemble_size, out_features], **factory_kwargs)))
+            self.register_parameter("bias", torch.nn.Parameter(torch.empty([out_features, ensemble_size], **factory_kwargs)))
         else:
-            self.register_parameter("bias", None)
+            self.register_buffer("bias", torch.zeros([out_features, ensemble_size], **factory_kwargs))
         self.reset_parameters()
         
     def reset_parameters(self):
         for i in range(self.ensemble_size):
-            torch.nn.init.kaiming_uniform_(self.weight[i], a=math.sqrt(5))
-        if self.bias is not None:
+            torch.nn.init.kaiming_uniform_(self.weight[..., i], a=math.sqrt(5))
+        if self.add_bias:
             for i in range(self.ensemble_size):
                 fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight[i])
                 bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
-                torch.nn.init.uniform_(self.bias[i], -bound, bound)
+                torch.nn.init.uniform_(self.bias[..., i], -bound, bound)
         
     def forward(self, input: torch.Tensor):
-        if self.bias is None:
-            bias = 0
-        else:
-            bias = self.bias
         if self.share_input:
-            res = torch.einsum('...j,bjk->b...k', input, self.weight)
-            if self.add_bias:
-                broadcast_length = len(input.shape)-1
-                return res + bias.reshape([self.ensemble_size]+[1]*broadcast_length+[self.out_features])
-            else:
-                return res
+            res = torch.einsum('...j,jkb->...kb', input, self.weight) + self.bias
         else:
-            res = torch.einsum('b...j,bjk->b...k', input, self.weight)
-            if self.add_bias:
-                broadcast_length = len(input.shape)-2
-                return res + bias.reshape([self.ensemble_size]+[1]*broadcast_length+[self.out_features])
-            else:
-                return res
+            res = torch.einsum('b...j,jkb->...kb', input, self.weight) + self.bias
+        return torch.einsum('...b->b...', res)
     
     def __repr__(self):
         return f"EnsembleLinear(in_features={self.in_features}, out_features={self.out_features}, bias={self.add_bias})"
