@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from offlinerllib.module.net.attention.base import BaseTransformer
-from offlinerllib.module.net.attention.positional_encoding import PositionalEmbedding, SinusoidEncoding, ZeroEncoding
+from offlinerllib.module.net.attention.positional_encoding import get_pos_encoding
 
 
 class GPTBlock(nn.Module):
@@ -12,9 +12,9 @@ class GPTBlock(nn.Module):
         self, 
         embed_dim: int, 
         num_heads: int, 
+        backbone_dim: Optional[int]=None, 
         attention_dropout: Optional[float]=None, 
         residual_dropout: Optional[float]=None, 
-        backbone_dim: Optional[int]=None, 
     ) -> None:
         super().__init__()
         if backbone_dim is None:
@@ -70,18 +70,13 @@ class GPT2(BaseTransformer):
         attention_dropout: Optional[float]=0.1, 
         residual_dropout: Optional[float]=0.1, 
         embed_dropout: Optional[float]=0.1, 
-        pos_encoding: str="sinusoid", 
-        pos_len: Optional[int]=None
+        pos_encoding: str="embed",
+        seq_len: Optional[int]=None
     ) -> None:
         super().__init__()
         self.input_embed = nn.Linear(input_dim, embed_dim)
-        pos_len = pos_len or 4096
-        if pos_encoding == "sinusoid":
-            self.pos_embed = SinusoidEncoding(embed_dim, pos_len)
-        elif pos_encoding == "embedding":
-            self.pos_embed = PositionalEmbedding(embed_dim, pos_len)
-        elif pos_encoding == "none":
-            self.pos_embed = ZeroEncoding(embed_dim, pos_len)
+        seq_len = seq_len or 1024
+        self.pos_encoding = get_pos_encoding(pos_encoding, embed_dim, seq_len)
         self.embed_dropout = nn.Dropout(embed_dropout) if embed_dropout else nn.Identity()
         self.out_ln = nn.LayerNorm(embed_dim)
         self.blocks = nn.ModuleList([
@@ -112,11 +107,9 @@ class GPT2(BaseTransformer):
             mask = torch.bitwise_or(attention_mask.to(torch.bool), mask)
         
         if do_embedding:
-            # do tokenize inside ?
+            # do tokenize inside?
             inputs = self.input_embed(inputs)
-            if timesteps is None:
-                timesteps = torch.arange(L).repeat(B, 1).to(inputs.device)
-            inputs = inputs + self.pos_embed(timesteps)
+            inputs = self.pos_encoding(inputs, timesteps)
         inputs = self.embed_dropout(inputs)
         for i, block in enumerate(self.blocks):
             inputs = block(inputs, attention_mask=mask, key_padding_mask=key_padding_mask)
