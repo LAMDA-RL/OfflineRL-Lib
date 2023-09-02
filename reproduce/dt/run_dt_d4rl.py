@@ -30,20 +30,24 @@ dt = DecisionTransformer(
     action_dim=action_shape, 
     embed_dim=args.embed_dim, 
     num_layers=args.num_layers, 
-    seq_len=args.seq_len, 
-    episode_len=args.episode_len, 
+    seq_len=args.seq_len+args.episode_len \
+        if args.use_abs_timestep else args.seq_len, # this is for positional encoding
     num_heads=args.num_heads, 
     attention_dropout=args.attention_dropout, 
     residual_dropout=args.residual_dropout, 
-    embed_dropout=args.embed_dropout
+    embed_dropout=args.embed_dropout, 
+    pos_encoding=args.pos_encoding
 ).to(args.device)
 
 policy = DecisionTransformerPolicy(
     dt=dt, 
     state_dim=obs_shape, 
     action_dim=action_shape, 
+    embed_dim=args.embed_dim, 
     seq_len=args.seq_len, 
     episode_len=args.episode_len, 
+    use_abs_timestep=args.use_abs_timestep, 
+    policy_type=args.policy_type, 
     device=args.device
 ).to(args.device)
 policy.configure_optimizers(lr=args.lr, weight_decay=args.weight_decay, betas=args.betas, warmup_steps=args.warmup_steps)

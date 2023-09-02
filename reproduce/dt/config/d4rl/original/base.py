@@ -33,3 +33,7 @@ class wandb(NameSpace):
     project = None
 
 debug = False
+
+use_abs_timestep = True
+pos_encoding = "embed"
+policy_type="deterministic"

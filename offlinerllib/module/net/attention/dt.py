@@ -14,12 +14,10 @@ class DecisionTransformer(GPT2):
         embed_dim: int, 
         num_layers: int, 
         seq_len: int, 
-        episode_len: int=1000, 
         num_heads: int=1, 
         attention_dropout: Optional[float]=0.1, 
         residual_dropout: Optional[float]=0.1, 
         embed_dropout: Optional[float]=0.1, 
-        use_abs_timestep: bool=True, 
         pos_encoding: str="embed", 
     ) -> None:
         super().__init__(
@@ -35,14 +33,12 @@ class DecisionTransformer(GPT2):
             seq_len=0
         )
         # we manually do the positional encoding here
-        pos_len = episode_len + seq_len if use_abs_timestep else seq_len
-        self.pos_encoding = get_pos_encoding(pos_encoding, embed_dim, pos_len)
+        self.pos_encoding = get_pos_encoding(pos_encoding, embed_dim, seq_len)
         self.obs_embed = nn.Linear(obs_dim, embed_dim)
         self.act_embed = nn.Linear(action_dim, embed_dim)
         self.ret_embed = nn.Linear(1, embed_dim)
-        
         self.embed_ln = nn.LayerNorm(embed_dim)
-
+        
     def forward(
         self, 
         states: torch.Tensor, 

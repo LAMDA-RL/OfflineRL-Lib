@@ -716,7 +716,7 @@ class CategoricalActor(BaseActor):
         info = {"probs": probs} if return_probs else {}
         return action, logprob, info
     
-    def evaluate(self, obs: torch.Tensor, action: torch.Tensor, return_dist: bool=False, *args, **kwargs) -> Tuple[torch.Tensor, Dict]:
+    def evaluate(self, obs: torch.Tensor, action: torch.Tensor, is_onehot_action: bool=False, return_dist: bool=False, *args, **kwargs) -> Tuple[torch.Tensor, Dict]:
         """Evaluate the action at given obs. 
         
         Parameters
@@ -730,8 +730,10 @@ class CategoricalActor(BaseActor):
         (torch.Tensor, Dict) :  The log-probability of action at obs and the info dict. 
         """
 
-        if len(action.shape) == 2:
-            action = action.view(-1)
+        if is_onehot_action:
+            action = action.argmax(-1)
+        else:
+            action = action.squeeze(-1)
         probs = self.forward(obs)
         dist = Categorical(probs=probs)
         info = {"dist": dist} if return_dist else {}

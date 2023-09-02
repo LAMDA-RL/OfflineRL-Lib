@@ -3,20 +3,20 @@ from torch import nn
 
 def get_pos_encoding(cls: str, embed_dim: int, seq_len: int, *args, **kwargs):
     cls2enc = {
-        "embed": PosEmbedding(embed_dim, seq_len, *args, **kwargs), 
-        "none": DummyEncoding(embed_dim, seq_len, *args, **kwargs), 
-        "dummy": DummyEncoding(embed_dim, seq_len, *args, **kwargs), 
-        "sinusoidal": SinusoidalEncoding(embed_dim, seq_len, *args, **kwargs), 
-        "rope": RotaryPosEmbedding(embed_dim, seq_len, *args, **kwargs)
+        "embed": PosEmbedding, 
+        "none": DummyEncoding, 
+        "dummy": DummyEncoding, 
+        "sinusoidal": SinusoidalEncoding, 
+        "rope": RotaryPosEmbedding
     }
     if cls not in cls2enc:
         raise ValueError(f"Invalid positional encoding: {cls}, choices are {list(cls2enc.keys())}.")
-    return cls2enc[cls]
+    return cls2enc[cls](embed_dim, seq_len, *args, **kwargs)
 
 
 class BasePosEncoding(nn.Module):
     def __init__(self, *args, **kwargs):
-        pass
+        super().__init__()
     
     def forward(self, *args, **kwargs):
         raise NotImplementedError()
@@ -32,7 +32,7 @@ class PosEmbedding(BasePosEncoding):
 
     def forward(self, x, timestep=None):
         if timestep is None:
-            return x + self.embedding(torch.arange(x.shape[1])).repeat(x.shape[0], 1).to(x.device)
+            return x + self.embedding(torch.arange(x.shape[1]).to(x.device)).repeat(x.shape[0], 1, 1)
         else:
             return x + self.embedding(timestep)
     
@@ -54,20 +54,21 @@ class SinusoidalEncoding(BasePosEncoding):
     """
     def __init__(self, embed_dim: int, seq_len: int, base: int=10000):
         super().__init__()
-
-        self.register_buffer("encoding", torch.zeros(seq_len, embed_dim))
-
-        pos = torch.arange(seq_len).float().unsqueeze(dim=1)
-        _2i = torch.arange(0, embed_dim, step=2).float()
-
-        self.encoding[:, 0::2] = torch.sin(pos / (base ** (_2i / embed_dim)))
-        self.encoding[:, 1::2] = torch.cos(pos / (base ** (_2i / embed_dim)))
-
+        # It is strange that I found that 
+        self.embed_dim = embed_dim
+        self.seq_len = seq_len
+        self.base = base
+        
     def forward(self, x, timestep=None):
+        B, L, E = x.shape
         if timestep is None:
-            return x + self.encoding[torch.arange(x.shape[1]).to(x.device)].repeat(x.shape[0], 1)
-        else:
-            return x + self.encoding[timestep].reshape(*x.shape)
+            timestep = torch.arange(L).to(x.device).repeat(B, 1)
+        timestep = timestep.float().unsqueeze(-1)
+        inv_freq = 1.0/(self.base**(torch.arange(0, self.embed_dim, step=2)/self.embed_dim)).to(x.device)
+        return x + torch.stack([
+                torch.sin(timestep * inv_freq), 
+                torch.cos(timestep * inv_freq)
+            ], dim=-1).reshape(B, L, E).detach()
         
 
 class RotaryPosEmbedding(BasePosEncoding):
@@ -76,22 +77,20 @@ class RotaryPosEmbedding(BasePosEncoding):
     """
     def __init__(self, embed_dim: int, seq_len: int, base: int=10000):
         super().__init__()
-        inv_freq = 1. / (base ** (torch.arange(0, embed_dim, 2).float() / embed_dim))
-        t = torch.arange(seq_len).float()
-        freqs = torch.matmul(t.unsqueeze(1), inv_freq.unsqueeze(0))
-        self.register_buffer("sin", freqs.sin())
-        self.register_buffer("cos", freqs.cos())
+        self.embed_dim = embed_dim
+        self.seq_len = seq_len
+        self.base = base
         
     def forward(self, x, timestep=None):
+        B, L, E = x.shape
         if timestep is None:
-            timestep = torch.arange(x.shape[1]).to(x.device)
-            sin = self.sin[timestep, :].repeat(x.shape[0], 1)
-            cos = self.cos[timestep, :].repeat(x.shape[0], 1)
-        else:
-            sin, cos = self.sin[timestep, :], self.cos[timestep, :]
+            timestep = torch.arange(L).to(x.device).repeat(B, 1)
+        timestep = timestep.float().unsqueeze(-1)
+        freq = (self.base**(torch.arange(0, self.embed_dim, step=2)/self.embed_dim)).to(x.device)
+        sin = torch.sin(timestep / freq)
+        cos = torch.cos(timestep / freq)
         x1, x2 = x[..., 0::2], x[..., 1::2]
-        ret = torch.stack([
+        return torch.stack([
             x1*cos - x2*sin, x1*sin + x2*cos
-        ], axis=-1).reshape(*x.shape)
-        return ret
-        
+        ], axis=-1).reshape(B, L, E)
+
