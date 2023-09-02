@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from offlinerllib.module.net.attention.base import BaseTransformer
-from offlinerllib.module.net.attention.positional_encoding import PositionalEmbedding, SinusoidEncoding, ZeroEncoding
+from offlinerllib.module.net.attention.positional_encoding import get_pos_encoding
 
 
 class TransformerEncoderBlock(nn.Module):
@@ -13,27 +13,30 @@ class TransformerEncoderBlock(nn.Module):
         embed_dim: int, 
         num_heads: int, 
         backbone_dim: Optional[int]=None, 
-        dropout: Optional[float]=None, 
+        pre_norm: bool=False, 
+        attention_dropout: Optional[float]=None, 
+        residual_dropout: Optional[float]=None
     ) -> None:
         super().__init__()
         if backbone_dim is None:
             backbone_dim = 4 * embed_dim
-        # in transformer we don't add dropout inside MultiheadAttention
         self.attention = nn.MultiheadAttention(
             embed_dim=embed_dim, 
-            num_heads=num_heads, 
+            num_heads=num_heads,
+            dropout=attention_dropout, 
             batch_first=True
         )
+        self.dropout1 = nn.Dropout(residual_dropout)
         self.norm1 = nn.LayerNorm(embed_dim)
-        self.dropout1 = nn.Dropout(dropout)
         self.ff = nn.Sequential(
             nn.Linear(embed_dim, backbone_dim), 
             nn.ReLU(), 
-            nn.Dropout(dropout), 
+            nn.Dropout(residual_dropout), 
             nn.Linear(backbone_dim, embed_dim)
         )
         self.norm2 = nn.LayerNorm(embed_dim)
-        self.dropout2 = nn.Dropout(dropout)
+        self.dropout2 = nn.Dropout(residual_dropout)
+        self.pre_norm = pre_norm
         
     def forward(
         self, 
@@ -47,6 +50,15 @@ class TransformerEncoderBlock(nn.Module):
             key_padding_mask = key_padding_mask.to(torch.bool)
 
         residual = input
+        if self.pre_norm:
+            residual = residual + self._sa_block(self.norm1(input), attention_mask, key_padding_mask)
+            residual = residual + self._ff_block(self.norm2(residual))
+        else:
+            residual = self.norm1(residual + self._sa_block(input, attention_mask, key_padding_mask))
+            residual = self.norm2(residual + self._ff_block(residual))
+        return residual
+        
+    def _sa_block(self, input, attention_mask, key_padding_mask):
         input = self.attention(
             query=input, 
             key=input, 
@@ -55,9 +67,10 @@ class TransformerEncoderBlock(nn.Module):
             attn_mask=attention_mask, 
             key_padding_mask=key_padding_mask
         )[0]
-        residual = self.norm1(residual + self.dropout1(input))
-        residual = self.norm2(residual + self.dropout2(self.ff(residual)))
-        return residual
+        return self.dropout1(input)
+    
+    def _ff_block(self, input):
+        return self.dropout2(self.ff(input))
     
 
 class TransformerDecoderBlock(nn.Module):
@@ -66,7 +79,9 @@ class TransformerDecoderBlock(nn.Module):
         embed_dim: int, 
         num_heads: int, 
         backbone_dim: Optional[int]=None, 
-        dropout: Optional[float]=None
+        pre_norm: bool=False, 
+        attention_dropout: Optional[float]=None, 
+        residual_dropout: Optional[float]=None
     ) -> None:
         super().__init__()
         if backbone_dim is None:
@@ -74,27 +89,30 @@ class TransformerDecoderBlock(nn.Module):
         self.self_attention = nn.MultiheadAttention(
             embed_dim=embed_dim, 
             num_heads=num_heads, 
+            dropout=attention_dropout, 
             batch_first=True
         )
         self.norm1 = nn.LayerNorm(embed_dim)
-        self.dropout1 = nn.Dropout(dropout)
+        self.dropout1 = nn.Dropout(residual_dropout)
         
         self.enc_dec_attention = nn.MultiheadAttention(
             embed_dim=embed_dim, 
             num_heads=num_heads, 
+            dropout=attention_dropout, 
             batch_first=True
         )
         self.norm2 = nn.LayerNorm(embed_dim)
-        self.dropout2 = nn.Dropout(dropout)
+        self.dropout2 = nn.Dropout(residual_dropout)
 
         self.ff = nn.Sequential(
             nn.Linear(embed_dim, backbone_dim), 
             nn.ReLU(), 
-            nn.Dropout(dropout), 
+            nn.Dropout(residual_dropout), 
             nn.Linear(backbone_dim, embed_dim)
         )
         self.norm3 = nn.LayerNorm(embed_dim)
-        self.dropout3 = nn.Dropout(dropout)
+        self.dropout3 = nn.Dropout(residual_dropout)
+        self.pre_norm = pre_norm
         
     def forward(
         self, 
@@ -105,34 +123,44 @@ class TransformerDecoderBlock(nn.Module):
         src_attention_mask: Optional[torch.Tensor]=None, 
         src_key_padding_mask: Optional[torch.Tensor]=None, 
     ):
-        # compute self.attention
-        _x = tgt
-        x = self.self_attention(
-            query=tgt, 
-            key=tgt, 
-            value=tgt, 
-            attn_mask=tgt_attention_mask, 
-            key_padding_mask=tgt_key_padding_mask
+        residual = tgt
+        if self.pre_norm:
+            residual = residual + self._sa_block(self.norm1(residual), tgt_attention_mask, tgt_key_padding_mask)
+            if enc_src is not None:
+                residual = residual + self._mha_block(self.norm2(residual), enc_src, src_attention_mask, src_key_padding_mask)
+            residual = residual + self._ff_block(self.norm3(residual))
+        else:
+            residual = self.norm1(residual + self._sa_block(residual, tgt_attention_mask, tgt_key_padding_mask))
+            if enc_src is not None:
+                residual = self.norm2(residual + self._mha_block(residual, enc_src, src_attention_mask, src_key_padding_mask))
+            residual = self.norm3(residual + self._ff_block(residual))
+        return residual
+    
+    def _sa_block(self, input, attention_mask, key_padding_mask):
+        input = self.self_attention(
+            query=input, 
+            key=input, 
+            value=input, 
+            need_weights=False, 
+            attn_mask=attention_mask, 
+            key_padding_mask=key_padding_mask
         )[0]
-        x = self.norm1(_x + self.dropout1(x))
+        return self.dropout1(input)
+    
+    def _mha_block(self, input, key_value, attention_mask, key_padding_mask):
+        input = self.enc_dec_attention(
+            query=input, 
+            key=key_value, 
+            value=key_value, 
+            need_weights=False, 
+            attention_mask=attention_mask, 
+            key_padding_mask=key_padding_mask
+        )[0]
+        return self.dropout2(input)
+    
+    def _ff_block(self, input):
+        return self.dropout3(self.ff(input))
         
-        if enc_src is not None:
-            # compute encoder-decoder attention
-            _x = x
-            x = self.enc_dec_attention(
-                query=x, 
-                key=enc_src, 
-                value=enc_src, 
-                attn_mask=src_attention_mask, 
-                key_padding_mask=src_key_padding_mask
-            )[0]
-            x = self.norm2(_x + self.dropout2(x))
-        
-        # ffn
-        _x = x
-        x = self.norm3(_x + self.dropout3(self.ff(x)))
-        return x
-
 
 class TransformerEncoder(BaseTransformer):
     def __init__(
@@ -142,31 +170,31 @@ class TransformerEncoder(BaseTransformer):
         num_layers: int, 
         num_heads: int, 
         causal: bool=False, 
-        embed_dropout: Optional[float]=None, 
+        out_ln: bool=True, 
+        pre_norm: bool=False, 
         attention_dropout: Optional[float]=None, 
+        residual_dropout: Optional[float]=None, 
+        embed_dropout: Optional[float]=None, 
         pos_encoding: str="sinusoid", 
-        pos_len: Optional[int]=None, 
+        seq_len: Optional[int]=None, 
     ) -> None:
         super().__init__()
         self.input_embed = nn.Linear(input_dim, embed_dim)
-        
-        pos_len = pos_len or 4096
-        if pos_encoding == "sinusoid":
-            self.pos_embed = SinusoidEncoding(embed_dim, pos_len)
-        elif pos_encoding == "embedding":
-            self.pos_embed = PositionalEmbedding(embed_dim, pos_len)
-        elif pos_encoding == "none":
-            self.pos_embed = ZeroEncoding(embed_dim, pos_len)
+        seq_len = seq_len or 1024
+        self.pos_encoding = get_pos_encoding(pos_encoding, embed_dim, seq_len)
         self.embed_dropout = nn.Dropout(embed_dropout)
         
         self.blocks = nn.ModuleList([
             TransformerEncoderBlock(
                 embed_dim=embed_dim, 
                 num_heads=num_heads, 
-                dropout=attention_dropout
+                pre_norm=pre_norm, 
+                attention_dropout=attention_dropout, 
+                residual_dropout=residual_dropout
             ) for _ in range(num_layers)
         ])
         
+        self.out_ln = nn.LayerNorm() if out_ln else nn.Identity()
         self.causal = causal
         
     def forward(
@@ -187,13 +215,11 @@ class TransformerEncoder(BaseTransformer):
         
         if do_embedding:
             inputs = self.input_embed(inputs)
-            if timesteps is None:
-                timesteps = torch.arange(L).repeat(B, 1).to(inputs.device)
-            inputs = inputs + self.pos_embed(timesteps)
+            inputs = self.pos_encoding(inputs, timesteps)
         inputs = self.embed_dropout(inputs)
         for i, block in enumerate(self.blocks):
             inputs = block(inputs, attention_mask=mask, key_padding_mask=key_padding_mask)
-        return inputs
+        return self.out_ln(inputs)
     
 
 class TransformerDecoder(BaseTransformer):
@@ -204,31 +230,31 @@ class TransformerDecoder(BaseTransformer):
         num_layers: int, 
         num_heads: int, 
         causal: bool=True, 
-        embed_dropout: Optional[float]=None, 
+        out_ln: bool=True, 
+        pre_norm: bool=False, 
         attention_dropout: Optional[float]=None, 
+        residual_dropout: Optional[float]=None, 
+        embed_dropout: Optional[float]=None, 
         pos_encoding: str="sinusoid", 
-        pos_len: Optional[int]=None, 
+        seq_len: Optional[int]=None, 
     ) -> None:
         super().__init__()
         self.input_embed = nn.Linear(input_dim, embed_dim)
-        
-        pos_len = pos_len or 4096
-        if pos_encoding == "sinusoid":
-            self.pos_embed = SinusoidEncoding(embed_dim, pos_len)
-        elif pos_encoding == "embedding":
-            self.pos_embed = PositionalEmbedding(embed_dim, pos_len)
-        elif pos_encoding == "none":
-            self.pos_embed = ZeroEncoding(embed_dim, pos_len)
+        seq_len = seq_len or 1024
+        self.pos_encoding = get_pos_encoding(pos_encoding, embed_dim, seq_len)
         self.embed_dropout = nn.Dropout(embed_dropout)
 
         self.blocks = nn.ModuleList([
             TransformerDecoderBlock(
                 embed_dim=embed_dim, 
                 num_heads=num_heads, 
-                dropout=attention_dropout, 
+                pre_norm=pre_norm, 
+                attention_dropout=attention_dropout, 
+                residual_dropout=residual_dropout
             ) for _ in range(num_layers)
         ])
         
+        self.out_ln = nn.LayerNorm() if out_ln else nn.Identity()
         self.causal = causal
             
     def forward(
@@ -264,7 +290,7 @@ class TransformerDecoder(BaseTransformer):
                 src_attention_mask=src_attention_mask, 
                 src_key_padding_mask=src_key_padding_mask
             )
-        return output
+        return self.out_ln(output)
         
 
 class Transformer(BaseTransformer):
@@ -336,4 +362,5 @@ class Transformer(BaseTransformer):
             do_embedding=do_embedding
         )
         return output
+        
         

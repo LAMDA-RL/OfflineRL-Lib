@@ -1,58 +1,96 @@
 import torch
 from torch import nn
 
-from offlinerllib.module.net.attention.base import PositionalEncoding
+def get_pos_encoding(cls: str, embed_dim: int, seq_len: int, *args, **kwargs):
+    cls2enc = {
+        "embed": PosEmbedding, 
+        "none": DummyEncoding, 
+        "dummy": DummyEncoding, 
+        "sinusoidal": SinusoidalEncoding, 
+        "rope": RotaryPosEmbedding
+    }
+    if cls not in cls2enc:
+        raise ValueError(f"Invalid positional encoding: {cls}, choices are {list(cls2enc.keys())}.")
+    return cls2enc[cls](embed_dim, seq_len, *args, **kwargs)
 
-class SinusoidEncoding(PositionalEncoding):
-    """
-    Sinusoid encoding.
-    """
-    def __init__(self, embed_dim, pos_len):
+
+class BasePosEncoding(nn.Module):
+    def __init__(self, *args, **kwargs):
         super().__init__()
-
-        # same size with input matrix (for adding with input matrix)
-        self.register_buffer("encoding", torch.zeros(pos_len, embed_dim))
-        # self.encoding = torch.zeros(pos_len, embed_dim)
-        # self.encoding.requires_grad = False  # we don't need to compute gradient
-
-        pos = torch.arange(0, pos_len)
-        pos = pos.float().unsqueeze(dim=1)
-        # 1D => 2D unsqueeze to represent word's position
-
-        _2i = torch.arange(0, embed_dim, step=2).float()
-        # 'i' means index of d_model (e.g. embedding size = 50, 'i' = [0,50])
-        # "step=2" means 'i' multiplied with two (same with 2 * i)
-
-        self.encoding[:, 0::2] = torch.sin(pos / (10000 ** (_2i / embed_dim)))
-        self.encoding[:, 1::2] = torch.cos(pos / (10000 ** (_2i / embed_dim)))
-        # compute positional encoding to consider positional information of words
-
-    def forward(self, x):
-        B, L = x.shape
-        return self.encoding[x.reshape(-1)].reshape(B, L, -1)
-
-
-class PositionalEmbedding(PositionalEncoding):
-    """
-    Direct embedding.
-    """
-    def __init__(self, embed_dim, pos_len):
-        super().__init__()
-        self.embedding = torch.nn.Embedding(pos_len, embed_dim)
     
-    def forward(self, x):
-        return self.embedding(x)
+    def forward(self, *args, **kwargs):
+        raise NotImplementedError()
 
+        
+class PosEmbedding(BasePosEncoding):
+    """
+    Learnable Positional Embedding. <Ref: Language Models are Unsupervised Multitask Learners>
+    """
+    def __init__(self, embed_dim: int, seq_len: int):
+        super().__init__()
+        self.embedding = torch.nn.Embedding(seq_len, embed_dim)
 
-class ZeroEncoding(PositionalEncoding):
+    def forward(self, x, timestep=None):
+        if timestep is None:
+            return x + self.embedding(torch.arange(x.shape[1]).to(x.device)).repeat(x.shape[0], 1, 1)
+        else:
+            return x + self.embedding(timestep)
+    
+
+class DummyEncoding(BasePosEncoding):
     """
-    Zero encoding, i.e. no timestep encoding.
+    Dummy Encoding, i.e. no positional encoding. 
     """
-    def __init__(self, embed_dim, pos_len):
+    def __init__(self, embed_dim: int, seq_len: int):
+        super().__init__()
+        
+    def forward(self, x, timestep=None):
+        return x
+
+    
+class SinusoidalEncoding(BasePosEncoding):
+    """
+    Sinusoidal Encoding. <Ref: https://arxiv.org/abs/1706.03762>
+    """
+    def __init__(self, embed_dim: int, seq_len: int, base: int=10000):
+        super().__init__()
+        # It is strange that I found that 
+        self.embed_dim = embed_dim
+        self.seq_len = seq_len
+        self.base = base
+        
+    def forward(self, x, timestep=None):
+        B, L, E = x.shape
+        if timestep is None:
+            timestep = torch.arange(L).to(x.device).repeat(B, 1)
+        timestep = timestep.float().unsqueeze(-1)
+        inv_freq = 1.0/(self.base**(torch.arange(0, self.embed_dim, step=2)/self.embed_dim)).to(x.device)
+        return x + torch.stack([
+                torch.sin(timestep * inv_freq), 
+                torch.cos(timestep * inv_freq)
+            ], dim=-1).reshape(B, L, E).detach()
+        
+
+class RotaryPosEmbedding(BasePosEncoding):
+    """
+    Rotary Positional Embedding. <Ref: https://arxiv.org/abs/2104.09864>
+    """
+    def __init__(self, embed_dim: int, seq_len: int, base: int=10000):
         super().__init__()
         self.embed_dim = embed_dim
+        self.seq_len = seq_len
+        self.base = base
         
-    def forward(self, x):
-        B, L = x.shape
-        return torch.zeros([B, L, self.embed_dim]).to(x.device).detach()
-    
+    def forward(self, x, timestep=None):
+        B, L, E = x.shape
+        if timestep is None:
+            timestep = torch.arange(L).to(x.device).repeat(B, 1)
+        timestep = timestep.float().unsqueeze(-1)
+        freq = (self.base**(torch.arange(0, self.embed_dim, step=2)/self.embed_dim)).to(x.device)
+        sin = torch.sin(timestep / freq)
+        cos = torch.cos(timestep / freq)
+        x1, x2 = x[..., 0::2], x[..., 1::2]
+        return torch.stack([
+            x1*cos - x2*sin, x1*sin + x2*cos
+        ], axis=-1).reshape(B, L, E)
+

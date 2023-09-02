@@ -14,11 +14,10 @@ from offlinerllib.utils.eval import eval_offline_policy
 
 args = parse_args()
 exp_name = "_".join([args.task, "seed"+str(args.seed)]) 
-logger = CompositeLogger(log_path=f"./log/awac/{args.name}", name=exp_name, loggers_config={
-    "FileLogger": {"activate": not args.debug}, 
-    "TensorboardLogger": {"activate": not args.debug}, 
-    "WandbLogger": {"activate": not args.debug, "config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
-})
+logger = CompositeLogger(log_dir=f"./log/awac/{args.name}", name=exp_name, logger_config={
+    "TensorboardLogger": {}, 
+    "WandbLogger": {"config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
+}, activate=not args.debug)
 setup(args, logger)
 
 env, dataset = get_d4rl_dataset(args.task, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)

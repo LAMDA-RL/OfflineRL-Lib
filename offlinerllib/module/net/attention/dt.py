@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 
 from offlinerllib.module.net.attention.gpt2 import GPT2
+from offlinerllib.module.net.attention.positional_encoding import get_pos_encoding
 
 class DecisionTransformer(GPT2):
     def __init__(
@@ -13,11 +14,11 @@ class DecisionTransformer(GPT2):
         embed_dim: int, 
         num_layers: int, 
         seq_len: int, 
-        episode_len: int=1000, 
         num_heads: int=1, 
         attention_dropout: Optional[float]=0.1, 
         residual_dropout: Optional[float]=0.1, 
         embed_dropout: Optional[float]=0.1, 
+        pos_encoding: str="embed", 
     ) -> None:
         super().__init__(
             input_dim=embed_dim, # actually not used
@@ -29,17 +30,15 @@ class DecisionTransformer(GPT2):
             residual_dropout=residual_dropout, 
             embed_dropout=embed_dropout, 
             pos_encoding="none", 
-            pos_len=0
+            seq_len=0
         )
-        # we manually do the embeddings here
-        self.pos_embed = nn.Embedding(episode_len + seq_len, embed_dim)
+        # we manually do the positional encoding here
+        self.pos_encoding = get_pos_encoding(pos_encoding, embed_dim, seq_len)
         self.obs_embed = nn.Linear(obs_dim, embed_dim)
         self.act_embed = nn.Linear(action_dim, embed_dim)
         self.ret_embed = nn.Linear(1, embed_dim)
-        
         self.embed_ln = nn.LayerNorm(embed_dim)
-        self.action_head = nn.Sequential(nn.Linear(embed_dim, action_dim), nn.Tanh())
-
+        
     def forward(
         self, 
         states: torch.Tensor, 
@@ -50,10 +49,9 @@ class DecisionTransformer(GPT2):
         key_padding_mask: Optional[torch.Tensor]=None, 
     ):
         B, L, *_ = states.shape
-        time_embedding = self.pos_embed(timesteps)
-        state_embedding = self.obs_embed(states) + time_embedding
-        action_embedding = self.act_embed(actions) + time_embedding
-        return_embedding = self.ret_embed(returns_to_go) + time_embedding
+        state_embedding = self.pos_encoding(self.obs_embed(states), timesteps)
+        action_embedding = self.pos_encoding(self.act_embed(actions), timesteps)
+        return_embedding = self.pos_encoding(self.ret_embed(returns_to_go), timesteps)
         
         if key_padding_mask is not None:
             key_padding_mask = torch.stack([key_padding_mask, key_padding_mask, key_padding_mask], dim=2).reshape(B, 3*L)
@@ -68,6 +66,5 @@ class DecisionTransformer(GPT2):
             do_embedding=False
         )
 
-        out = self.action_head(out[:, 1::3])
-        return out    # (batch size, length, action_shape)
+        return out    # (batch size, length, action_shape) # out is not projected to action
 

@@ -167,15 +167,17 @@ class EnsembleMLP(nn.Module):
         
         hidden_dims = [input_dim] + list(hidden_dims)
         model = []
+        share_input = True
         for in_dim, out_dim, norm, activ, dropout, share_layer in zip(
             hidden_dims[:-1], hidden_dims[1:], norm_layer_list, activation_list,dropout_list, share_hidden_layer_list
         ):
             if share_layer:      
                 model += miniblock(in_dim, out_dim, norm, activ, dropout, linear_layer=nn.Linear, device=device)
             else:
-                model += miniblock(in_dim, out_dim, norm, activ, dropout, linear_layer=EnsembleLinear, ensemble_size=ensemble_size, device=device)
+                model += miniblock(in_dim, out_dim, norm, activ, dropout, linear_layer=EnsembleLinear, ensemble_size=ensemble_size, device=device, share_input=share_input)
+                share_input = False  # The first EnsembleLinear shares the input and produce branched outputs, while the subsequent EnsembleLinear do not. 
         if output_dim > 0:
-            model += [EnsembleLinear(hidden_dims[-1], output_dim, ensemble_size, device=device)]
+            model += [EnsembleLinear(hidden_dims[-1], output_dim, ensemble_size, device=device, share_input=share_input)]
         self.output_dim = output_dim or hidden_dims[-1]
         
         self.model = nn.Sequential(*model)
