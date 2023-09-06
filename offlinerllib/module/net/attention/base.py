@@ -4,6 +4,13 @@ import torch.nn as nn
 from offlinerllib.module.net.attention.positional_encoding import BasePosEncoding
 
 
+class DecayParameter(nn.Parameter):
+    pass
+
+class NoDecayParameter(nn.Parameter):
+    pass
+
+
 class BaseTransformer(nn.Module):
     def __init__(self, *args, **kwargs):
         super().__init__()
@@ -31,6 +38,10 @@ class BaseTransformer(nn.Module):
                     no_decay.add(fpn)
                 elif pn.endswith("weight") and isinstance(m, whitelist_weight_modules):
                     decay.add(fpn)
+                elif isinstance(p, DecayParameter):
+                    decay.add(fpn)
+                elif isinstance(p, NoDecayParameter):
+                    no_decay.add(fpn)
                 
         # validate that we considered every parameter
         param_dict = {pn: p for pn, p in self.named_parameters()}
