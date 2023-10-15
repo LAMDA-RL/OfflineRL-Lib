@@ -153,7 +153,7 @@ class TransformerDecoderBlock(nn.Module):
             key=key_value, 
             value=key_value, 
             need_weights=False, 
-            attention_mask=attention_mask, 
+            attn_mask=attention_mask, 
             key_padding_mask=key_padding_mask
         )[0]
         return self.dropout2(input)
@@ -194,7 +194,7 @@ class TransformerEncoder(BaseTransformer):
             ) for _ in range(num_layers)
         ])
         
-        self.out_ln = nn.LayerNorm() if out_ln else nn.Identity()
+        self.out_ln = nn.LayerNorm(embed_dim) if out_ln else nn.Identity()
         self.causal = causal
         
     def forward(
@@ -254,7 +254,7 @@ class TransformerDecoder(BaseTransformer):
             ) for _ in range(num_layers)
         ])
         
-        self.out_ln = nn.LayerNorm() if out_ln else nn.Identity()
+        self.out_ln = nn.LayerNorm(embed_dim) if out_ln else nn.Identity()
         self.causal = causal
             
     def forward(
@@ -276,10 +276,7 @@ class TransformerDecoder(BaseTransformer):
         if tgt_attention_mask is not None:
             tgt_mask = torch.bitwise_or(tgt_attention_mask.to(torch.bool), tgt_mask)
         if do_embedding:
-            tgt = self.input_embed(tgt)
-            if timesteps is not None:
-                timesteps = torch.arange(L).repeat(B, 1).to(tgt.device)
-            tgt = tgt + self.pos_embed(timesteps)
+            tgt = self.pos_encoding(self.input_embed(tgt))
         output = self.embed_dropout(tgt)
         for i, block in enumerate(self.blocks):
             output = block(
