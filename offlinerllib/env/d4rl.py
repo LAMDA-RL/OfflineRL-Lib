@@ -3,8 +3,10 @@ import numpy as np
 import d4rl
 import torch
 
-def antmaze_normalize_reward(dataset):
-    dataset["rewards"] -= 1.0
+def maze_normalize_reward(dataset):
+    # dataset["rewards"] -= 1.0
+    # return dataset, {}
+    dataset["rewards"] = (dataset["rewards"] - 0.5) * 4
     return dataset, {}
     
 def mujoco_normalize_reward(dataset):
@@ -131,9 +133,9 @@ def get_d4rl_dataset(
     env = gym.make(task)
     dataset = qlearning_dataset(env, terminate_on_end=terminate_on_end, discard_last=discard_last, **kwargs)
     if normalize_reward:
-        if "antmaze" in task:
-            dataset, _ = antmaze_normalize_reward(dataset)
-        elif "halfcheetah" in task or "hopper" in task or "walker2d" in task or "ant" in task:
+        if "maze" in task and "dense" not in task:
+            dataset, _ = maze_normalize_reward(dataset)
+        elif "halfcheetah" in task or "hopper" in task or "walker2d" in task or "ant" in task or "humanoid" in task or "swimmer" in task:
             dataset, _ = mujoco_normalize_reward(dataset)
     if normalize_obs:
         dataset, info = d4rl_normalize_obs(dataset)
