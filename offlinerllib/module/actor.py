@@ -278,8 +278,8 @@ class GaussianActor(BaseActor):
         reparameterize: bool=True, 
         conditioned_logstd: bool=True, 
         fix_logstd: Optional[float]=None, 
-        logstd_min: int = -20, 
-        logstd_max: int = 2,
+        logstd_min: float = -20.0, 
+        logstd_max: float = 2.0,
         logstd_hard_clip: bool=True, 
         device: Union[str, int, torch.device]="cpu", 
         *, 
@@ -337,8 +337,8 @@ class GaussianActor(BaseActor):
         else:
             raise ValueError(f"ensemble size should be int >= 1.")
         
-        self.register_buffer("logstd_min", torch.tensor(logstd_min))
-        self.register_buffer("logstd_max", torch.tensor(logstd_max))
+        self.register_buffer("logstd_min", torch.tensor(logstd_min, dtype=torch.float32))
+        self.register_buffer("logstd_max", torch.tensor(logstd_max, dtype=torch.float32))
     
     def forward(self, input: torch.Tensor):
         out = self.output_layer(self.backend(input))
@@ -436,8 +436,8 @@ class SquashedGaussianActor(GaussianActor):
         reparameterize: bool = True, 
         conditioned_logstd: bool = True, 
         fix_logstd: Optional[float] = None, 
-        logstd_min: int = -20, 
-        logstd_max: int = 2, 
+        logstd_min: float = -20.0, 
+        logstd_max: float = 2.0, 
         logstd_hard_clip: bool=True, 
         device: Union[str, int, torch.device]="cpu",
         *, 
@@ -542,8 +542,8 @@ class ClippedGaussianActor(GaussianActor):
         reparameterize: bool = True, 
         conditioned_logstd: bool = True, 
         fix_logstd: Optional[float] = None, 
-        logstd_min: int = -20, 
-        logstd_max: int = 2, 
+        logstd_min: float = -20.0, 
+        logstd_max: float = 2.0, 
         logstd_hard_clip: bool=True, 
         device: Union[str, int, torch.device]="cpu",
         *, 
