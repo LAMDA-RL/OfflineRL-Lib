@@ -16,7 +16,7 @@ exp_name = "_".join([args.task, "seed"+str(args.seed)])
 logger = CompositeLogger(log_dir=f"./log/dt/{args.name}", name=exp_name, logger_config={
     "TensorboardLogger": {}, 
     "WandbLogger": {"config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
-})
+}, activate=not args.debug)
 setup(args, logger)
 
 env, dataset = get_neorl_dataset(args.task, normalize_obs=args.normalize_obs, normalize_reward=args.normalize_reward)
