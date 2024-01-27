@@ -7,3 +7,4 @@ scripts/
 out/
 wandb
 tests/
+datasets/
