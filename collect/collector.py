@@ -1,6 +1,3 @@
-import sys
-sys.path.append("..")
-import os
 import gym
 import numpy as np
 import torch
@@ -19,6 +16,7 @@ from offlinerllib.module.net.mlp import MLP
 from offlinerllib.policy.model_free import SACPolicy
 from offlinerllib.utils.eval import eval_online_policy
 
+
 args = parse_args()
 if args.env_type == "dmc":
     args.env = "-".join([args.domain.title(), args.task.title(), "v1"])
@@ -30,18 +28,14 @@ logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 setup(args, logger)
 
-if args.env_type == "dmc":
-    env = make_dmc(domain_name=args.domain, task_name=args.task)
-    eval_env = make_dmc(domain_name=args.domain, task_name=args.task)
-else:
-    based_env = gym.make(args.env)
-    based_eval_env = gym.make(args.env)
-    env = MujocoParamOverWrite(
-        based_env, overwrite_args=args.overwrite_args, do_scale=args.do_scale
-    )
-    eval_env = MujocoParamOverWrite(
-        based_eval_env, overwrite_args=args.overwrite_args, do_scale=args.do_scale
-    )
+based_env = gym.make(args.env)
+based_eval_env = gym.make(args.env)
+env = MujocoParamOverWrite(
+    based_env, overwrite_args=args.overwrite_args, do_scale=args.do_scale
+)
+eval_env = MujocoParamOverWrite(
+    based_eval_env, overwrite_args=args.overwrite_args, do_scale=args.do_scale
+)
 
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
@@ -81,7 +75,7 @@ def get_policy(load_path):
 
 
 actor_policy = get_policy(
-    f"../out/sac-08/{args.name}/{args.env}/seed{args.seed}/policy/policy_1000.pt"
+    f"../out/sac-08/{args.name}/{args.env}/seed{args.seed}/policy/policy_250.pt"
 )
 critic_policy = get_policy(
     f"../out/sac-08/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
@@ -121,6 +115,18 @@ buffer = TransitionSimpleReplay(
             ],
             "dtype": np.float32,
         },
+        "timeouts": {
+            "shape": [
+                1,
+            ],
+            "dtype": np.float32,
+        },
+        "masks": {
+            "shape": [
+                1,
+            ],
+            "dtype": np.float32,
+        },
         "q_values": {
             "shape": [
                 1,
@@ -138,31 +144,40 @@ buffer = TransitionSimpleReplay(
 
 
 # main loop
-num_epoch = 10
+num_epoch = 10000
 collected_data = []
 obs, terminal = env.reset(), False
 cur_traj_length = cur_traj_return = 0
 for i_epoch in trange(1, num_epoch + 1):
     buffer.reset()
-    for i_step in range(args.max_trajectory_length):
+    for i_step in range(1, args.max_trajectory_length + 1):
         action = actor_policy.select_action(obs)
 
-        next_obs, reward, terminal, info = env.step(action)
+        next_obs, reward, done, info = env.step(action)
         cur_traj_length += 1
         cur_traj_return += reward
-        if cur_traj_length >= args.max_trajectory_length:
-            terminal = False
-        buffer.add_sample(
-            {
-                "observations": obs,
-                "actions": action,
-                "next_observations": next_obs,
-                "rewards": reward,
-                "terminals": terminal,
-                "q_values": 0.0,
-                "v_values": 0.0,
-            }
-        )
+        
+        timeout = False
+        terminal = False
+        if i_epoch == args.max_trajectory_length:
+            timeout = True
+        elif done:
+            terminal = True
+
+        with torch.no_grad():
+            buffer.add_sample(
+                {
+                    "observations": obs,
+                    "actions": action,
+                    "next_observations": next_obs,
+                    "rewards": reward,
+                    "terminals": terminal,
+                    "timeouts": timeout,
+                    "masks": 1.0,
+                    "q_values": (critic_policy.critic(torch.tensor(obs, device=args["device"]).float(), torch.tensor(action, device=args["device"]).float()).mean(dim=0)).cpu().numpy(),
+                    "v_values": (critic_policy.critic(torch.tensor(obs, device=args["device"]).float(), torch.tensor(critic_policy.select_action(obs), device=args["device"]).float()).mean(dim=0)).cpu().numpy(),
+                }
+            )
         obs = next_obs
         if terminal:
             break
@@ -187,8 +202,9 @@ processed_data = { k: np.array(v) for k, v in processed_data.items() }
 
 # save processed_data to f"../datasets/sac-08/{args.name}/{args.env}/seed{args.seed}/data.npz"
 # create folder if not exist
+import os
 os.makedirs(f"../datasets/sac-08/{args.name}/{args.env}/seed{args.seed}", exist_ok=True)
-np.savez(
+np.savez_compressed(
     f"../datasets/sac-08/{args.name}/{args.env}/seed{args.seed}/data.npz",
     **processed_data
 )
