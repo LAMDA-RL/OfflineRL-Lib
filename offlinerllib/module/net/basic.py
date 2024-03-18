@@ -49,11 +49,11 @@ def miniblock(
 class EnsembleLinear(nn.Module):
     """
     An linear module for concurrent forwarding, which can be used for ensemble purpose.
-    
+
     Parameters
     ----------
-    in_features :  Number of input features. 
-    out_features :  Number of output features. 
+    in_features :  Number of input features.
+    out_features :  Number of output features.
     ensemble_size :  Ensemble size. Default is 1.
     bias :  Whether to add bias or not. Default is True.
     device :  Device to use for parameters.
@@ -61,12 +61,12 @@ class EnsembleLinear(nn.Module):
     """
     def __init__(
         self,
-        in_features, 
-        out_features, 
+        in_features,
+        out_features,
         ensemble_size: int = 1,
-        share_input: bool=True, 
-        bias: bool = True, 
-        device: Optional[Any] = None, 
+        share_input: bool=True,
+        bias: bool = True,
+        device: Optional[Any] = None,
         dtype: Optional[Any] = None
     ) -> None:
         factory_kwargs = {"device": device, "dtype": dtype}
@@ -82,23 +82,23 @@ class EnsembleLinear(nn.Module):
         else:
             self.register_buffer("bias", torch.zeros([out_features, ensemble_size], **factory_kwargs))
         self.reset_parameters()
-        
+
     def reset_parameters(self):
-        for i in range(self.ensemble_size):
-            torch.nn.init.kaiming_uniform_(self.weight[..., i], a=math.sqrt(5))
+        # Naively adapting the torch default initialization to EnsembleMLP results in
+        # bad performance and strange initial output.
+        # So we used the initialization strategy by https://github.com/jhejna/cpl/blob/a644e8bbcc1f32f0d4e1615c5db4f6077d6d2605/research/networks/common.py#L75
+        std = 1.0 / math.sqrt(self.in_features)
+        nn.init.uniform_(self.weight, -std, std)
         if self.add_bias:
-            for i in range(self.ensemble_size):
-                fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight[..., i])
-                bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
-                torch.nn.init.uniform_(self.bias[..., i], -bound, bound)
-        
+            nn.init.uniform_(self.bias, -std, std)
+
     def forward(self, input: torch.Tensor):
         if self.share_input:
             res = torch.einsum('...j,jkb->...kb', input, self.weight) + self.bias
         else:
             res = torch.einsum('b...j,jkb->...kb', input, self.weight) + self.bias
         return torch.einsum('...b->b...', res)
-    
+
     def __repr__(self):
         return f"EnsembleLinear(in_features={self.in_features}, out_features={self.out_features}, bias={self.add_bias})"
 
