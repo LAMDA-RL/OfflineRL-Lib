@@ -1,6 +1,7 @@
 import gym
 import robosuite as suite
 from robosuite.utils.mjmod import DynamicsModder
+from offlinerllib.utils.gym_wrapper import GymWrapper
 import numpy as np
 import torch
 import wandb
@@ -43,30 +44,27 @@ elif args.env_type == "mujoco":
     env = gym.make(args.env)
     eval_env = gym.make(args.env)
 elif args.env_type == "robosuite":
-    env = suite.make(
-        args.env,
-        robots=args.robots,
-        has_renderer=False,
-        use_object_obs=True,
-        reward_shaping=True,
+    env = GymWrapper(
+        suite.make(
+            args.env,
+            robots=args.robots,
+            use_object_obs=True,
+            reward_shaping=True,
+        ),
+        ["robot0_proprio-state", "object-state"],
     )
-    eval_env = suite.make(
-        args.env,
-        robots=args.robots,
-        has_renderer=False,
-        use_object_obs=True,
-        reward_shaping=True,
+    eval_env = GymWrapper(
+        suite.make(
+            args.env,
+            robots=args.robots,
+            use_object_obs=True,
+            reward_shaping=True,
+        ),
+        ["robot0_proprio-state", "object-state"],
     )
 
-if args.env_type == "robosuite":
-    obs_spec = env.observation_spec()
-    obs_shape = (
-        obs_spec['robot0_proprio-state'].shape[0] + obs_spec['object-state'].shape[0]
-    )
-    action_shape = env.robots[0].dof
-else:
-    obs_shape = env.observation_space.shape[0]
-    action_shape = env.action_space.shape[-1]
+obs_shape = env.observation_space.shape[0]
+action_shape = env.action_space.shape[-1]
 
 actor = SquashedGaussianActor(
     backend=torch.nn.Identity(),
@@ -136,8 +134,6 @@ buffer.reset()
 
 # main loop
 obs, terminal = env.reset(), False
-if args.env_type == "robosuite":
-    obs = np.concatenate([obs["robot0_proprio-state"], obs["object-state"]])
 cur_traj_length = cur_traj_return = 0
 all_traj_lengths = [0]
 all_traj_returns = [0]
@@ -152,10 +148,6 @@ for i_epoch in trange(1, args.num_epoch + 1):
             action = policy.select_action(obs)
 
         next_obs, reward, terminal, info = env.step(action)
-        if args.env_type == "robosuite":
-            next_obs = np.concatenate(
-                [next_obs["robot0_proprio-state"], next_obs["object-state"]]
-            )
         cur_traj_length += 1
         cur_traj_return += reward
         if cur_traj_length >= args.max_trajectory_length:
@@ -172,8 +164,6 @@ for i_epoch in trange(1, args.num_epoch + 1):
         obs = next_obs
         if terminal or cur_traj_length >= args.max_trajectory_length:
             obs = env.reset()
-            if args.env_type == "robosuite":
-                obs = np.concatenate([obs["robot0_proprio-state"], obs["object-state"]])
             all_traj_returns.append(cur_traj_return)
             all_traj_lengths.append(cur_traj_length)
             cur_traj_length = cur_traj_return = 0
