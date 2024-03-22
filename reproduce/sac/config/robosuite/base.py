@@ -16,7 +16,8 @@ actor_lr = 0.0003
 
 alpha_lr = 0.0003
 
-num_epoch = 1000
+num_epoch = 2000
+episode_per_epoch = 10
 step_per_epoch = 1000
 batch_size = 256
 
@@ -26,7 +27,7 @@ save_interval = 50
 log_interval = 10
 warmup_epoch = 2
 random_policy_epoch = 5
-max_trajectory_length = 1000
+max_trajectory_length = 500
 
 policy_logstd_min = -20
 policy_logstd_max = 2
