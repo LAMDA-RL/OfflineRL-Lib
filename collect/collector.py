@@ -1,4 +1,7 @@
 import gym
+import robosuite as suite
+from robosuite.utils.mjmod import DynamicsModder
+from robosuite.controllers import load_controller_config
 import numpy as np
 import torch
 import wandb
@@ -15,27 +18,70 @@ from offlinerllib.module.critic import Critic
 from offlinerllib.module.net.mlp import MLP
 from offlinerllib.policy.model_free import SACPolicy
 from offlinerllib.utils.eval import eval_online_policy
+from offlinerllib.utils.gym_wrapper import GymWrapper
 
+
+controller_config = load_controller_config(default_controller="OSC_POSE")
+robosuite_env_args = {
+    "horizon": 500,
+    "controller_configs": controller_config,
+    "use_object_obs": True,
+    "reward_shaping": True,
+    "hard_reset": False,
+}
 
 args = parse_args()
 if args.env_type == "dmc":
     args.env = "-".join([args.domain.title(), args.task.title(), "v1"])
 elif args.env_type == "mujoco":
     args.env = args.task
+elif args.env_type == "robosuite":
+    args.env = args.task
+    args.robots = args.robots
 exp_name = "_".join([args.env, "seed" + str(args.seed)])
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(logging.StreamHandler())
+logger = CompositeLogger(
+    log_dir=f"./log/sac/{args.name}",
+    name=exp_name,
+    logger_config={
+        "TensorboardLogger": {},
+        # "WandbLogger": {"config": args, "settings": wandb.Settings(_disable_stats=True), **args.wandb}
+    },
+    activate=not args.debug,
+)
 setup(args, logger)
 
-based_env = gym.make(args.env)
-based_eval_env = gym.make(args.env)
-env = MujocoParamOverWrite(
-    based_env, overwrite_args=args.overwrite_args, do_scale=args.do_scale
-)
-eval_env = MujocoParamOverWrite(
-    based_eval_env, overwrite_args=args.overwrite_args, do_scale=args.do_scale
-)
+if args.env_type == "dmc":
+    env = make_dmc(domain_name=args.domain, task_name=args.task)
+    eval_env = make_dmc(domain_name=args.domain, task_name=args.task)
+elif args.env_type == "mujoco":
+    env = gym.make(args.env)
+    eval_env = gym.make(args.env)
+elif args.env_type == "robosuite":
+    env = GymWrapper(
+        suite.make(
+            args.env,
+            robots=args.robots,
+            **robosuite_env_args,
+        ),
+        ["robot0_proprio-state", "object-state"],
+    )
+    eval_env = GymWrapper(
+        suite.make(
+            args.env,
+            robots=args.robots,
+            **robosuite_env_args,
+        ),
+        ["robot0_proprio-state", "object-state"],
+    )
+    modder = DynamicsModder(sim=env.sim, random_state=np.random.RandomState(5))
+    modder.mod(env.cube.root_body, "mass", 5.0)  # make the cube really heavy
+    modder.update()  # make sure the changes propagate in sim
+
+    eval_modder = DynamicsModder(
+        sim=eval_env.sim, random_state=np.random.RandomState(5)
+    )
+    eval_modder.mod(eval_env.cube.root_body, "mass", 5.0)  # make the cube really heavy
+    eval_modder.update()  # make sure the changes propagate in sim
 
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
@@ -75,65 +121,65 @@ def get_policy(load_path):
 
 
 actor_policy = get_policy(
-    f"../out/sac-08/{args.name}/{args.env}/seed{args.seed}/policy/policy_250.pt"
+    f"./out/{args.variant}/{args.name}/{args.env}/seed{args.seed}/policy/policy_50.pt"
 )
 critic_policy = get_policy(
-    f"../out/sac-08/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
+    f"./out/{args.variant}/{args.name}/{args.env}/seed{args.seed}/policy/policy_1000.pt"
 )
 
 
 buffer = TransitionSimpleReplay(
     max_size=args.max_trajectory_length,
     field_specs={
-        "observations": {
+        "obs": {
             "shape": [
                 obs_shape,
             ],
             "dtype": np.float32,
         },
-        "actions": {
+        "action": {
             "shape": [
                 action_shape,
             ],
             "dtype": np.float32,
         },
-        "next_observations": {
+        "next_obs": {
             "shape": [
                 obs_shape,
             ],
             "dtype": np.float32,
         },
-        "rewards": {
+        "reward": {
             "shape": [
                 1,
             ],
             "dtype": np.float32,
         },
-        "terminals": {
+        "terminal": {
             "shape": [
                 1,
             ],
             "dtype": np.float32,
         },
-        "timeouts": {
+        "timeout": {
             "shape": [
                 1,
             ],
             "dtype": np.float32,
         },
-        "masks": {
+        "mask": {
             "shape": [
                 1,
             ],
             "dtype": np.float32,
         },
-        "q_values": {
+        "q_value": {
             "shape": [
                 1,
             ],
             "dtype": np.float32,
         },
-        "v_values": {
+        "v_value": {
             "shape": [
                 1,
             ],
@@ -144,7 +190,7 @@ buffer = TransitionSimpleReplay(
 
 
 # main loop
-num_epoch = 10000
+num_epoch = args.num_epoch
 collected_data = []
 obs, terminal = env.reset(), False
 cur_traj_length = cur_traj_return = 0
@@ -156,10 +202,10 @@ for i_epoch in trange(1, num_epoch + 1):
         next_obs, reward, done, info = env.step(action)
         cur_traj_length += 1
         cur_traj_return += reward
-        
+
         timeout = False
         terminal = False
-        if i_epoch == args.max_trajectory_length:
+        if i_step == args.max_trajectory_length:
             timeout = True
         elif done:
             terminal = True
@@ -167,15 +213,31 @@ for i_epoch in trange(1, num_epoch + 1):
         with torch.no_grad():
             buffer.add_sample(
                 {
-                    "observations": obs,
-                    "actions": action,
-                    "next_observations": next_obs,
-                    "rewards": reward,
-                    "terminals": terminal,
-                    "timeouts": timeout,
-                    "masks": 1.0,
-                    "q_values": (critic_policy.critic(torch.tensor(obs, device=args["device"]).float(), torch.tensor(action, device=args["device"]).float()).mean(dim=0)).cpu().numpy(),
-                    "v_values": (critic_policy.critic(torch.tensor(obs, device=args["device"]).float(), torch.tensor(critic_policy.select_action(obs), device=args["device"]).float()).mean(dim=0)).cpu().numpy(),
+                    "obs": obs,
+                    "action": action,
+                    "next_obs": next_obs,
+                    "reward": reward,
+                    "terminal": terminal,
+                    "timeout": timeout,
+                    "mask": 1.0,
+                    "q_value": (
+                        critic_policy.critic(
+                            torch.tensor(obs, device=args["device"]).float(),
+                            torch.tensor(action, device=args["device"]).float(),
+                        ).mean(dim=0)
+                    )
+                    .cpu()
+                    .numpy(),
+                    "v_value": (
+                        critic_policy.critic(
+                            torch.tensor(obs, device=args["device"]).float(),
+                            torch.tensor(
+                                critic_policy.select_action(obs), device=args["device"]
+                            ).float(),
+                        ).mean(dim=0)
+                    )
+                    .cpu()
+                    .numpy(),
                 }
             )
         obs = next_obs
@@ -192,19 +254,34 @@ for i_epoch in trange(1, num_epoch + 1):
     cur_traj_length = cur_traj_return = 0
 
 
-processed_data = { k: [] for k in collected_data[0].keys() }
+processed_data = {k: [] for k in collected_data[0].keys()}
 for data in collected_data:
     for k, v in data.items():
         processed_data[k].append(v)
-assert all([len(v) == len(processed_data[list(processed_data.keys())[0]]) for k, v in processed_data.items()])
-processed_data = { k: np.array(v) for k, v in processed_data.items() }
+assert all(
+    [
+        len(v) == len(processed_data[list(processed_data.keys())[0]])
+        for k, v in processed_data.items()
+    ]
+)
+processed_data = {k: np.array(v) for k, v in processed_data.items()}
+for k, v in processed_data.items():
+    print(k, v.shape)
+# make masks (10000, 1000, 1) to masks (10000, 1000)
+processed_data["mask"] = processed_data["mask"].squeeze(-1)
+for k, v in processed_data.items():
+    print(k, v.shape)
 
-
-# save processed_data to f"../datasets/sac-08/{args.name}/{args.env}/seed{args.seed}/data.npz"
 # create folder if not exist
 import os
-os.makedirs(f"../datasets/sac-08/{args.name}/{args.env}/seed{args.seed}", exist_ok=True)
-np.savez_compressed(
-    f"../datasets/sac-08/{args.name}/{args.env}/seed{args.seed}/data.npz",
-    **processed_data
-)
+import matplotlib.pyplot as plt
+
+saved_path = f"./datasets/variant-world/{args.variant}/{args.env}/seed{args.seed}/"
+os.makedirs(saved_path, exist_ok=True)
+np.savez_compressed(saved_path + "data.npz", **processed_data)
+
+plt.hist(processed_data['episode_return'], bins=100)
+# title
+plt.title('gravity-12/Walker2d-v3')
+# save to saved_path/episode_return.png
+plt.savefig(saved_path + 'episode_return.png')

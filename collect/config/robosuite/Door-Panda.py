@@ -1,6 +1,4 @@
 from reproduce.sac.config.robosuite.base import *
 
-task = "Lift"
+task = "Door"
 robots = "Panda"
-
-variant = "sac-mass-5"

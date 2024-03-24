@@ -1,4 +1,4 @@
-from reproduce.sac.config.robosuite.base import *
+from collect.config.robosuite.base import *
 
 task = "Lift"
 robots = "Panda"

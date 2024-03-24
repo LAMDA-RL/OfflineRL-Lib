@@ -35,6 +35,7 @@ target_update_freq = 1
 
 env_type = "robosuite"
 name = "robosuite"
+variant = "sac"
 
 
 class wandb(NameSpace):
