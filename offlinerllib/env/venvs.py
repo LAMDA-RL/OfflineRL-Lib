@@ -211,11 +211,11 @@ class BaseVectorEnv:
             self.workers[i].send(None, **kwargs)
         ret_list = [self.workers[i].recv() for i in id]
 
-        assert (
-            isinstance(ret_list[0], tuple | list)
-            and len(ret_list[0]) == 2
-            and isinstance(ret_list[0][1], dict)
-        ), "The environment does not adhere to the Gymnasium's API."
+        # assert (
+        #     isinstance(ret_list[0], tuple | list)
+        #     and len(ret_list[0]) == 2
+        #     and isinstance(ret_list[0][1], dict)
+        # ), "The environment does not adhere to the Gymnasium's API."
 
         obs_list = [r[0] for r in ret_list]
 
@@ -229,8 +229,7 @@ class BaseVectorEnv:
         except ValueError:  # different len(obs)
             obs = np.array(obs_list, dtype=object)
 
-        infos = [r[1] for r in ret_list]
-        return obs, infos  # type: ignore
+        return obs
 
     def step(
         self,
@@ -304,9 +303,7 @@ class BaseVectorEnv:
                 env_return[-1]["env_id"] = env_id  # Add `env_id` to info
                 result.append(env_return)
                 self.ready_id.append(env_id)
-        obs_list, rew_list, term_list, trunc_list, info_list = tuple(
-            zip(*result, strict=True)
-        )
+        obs_list, rew_list, term_list, info_list = tuple(zip(*result, strict=True))
         try:
             obs_stack = np.stack(obs_list)
         except ValueError:  # different len(obs)
@@ -315,7 +312,6 @@ class BaseVectorEnv:
             obs_stack,
             np.stack(rew_list),
             np.stack(term_list),
-            np.stack(trunc_list),
             np.stack(info_list),
         )
 

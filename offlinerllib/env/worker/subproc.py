@@ -113,11 +113,11 @@ def _worker(
                     env_return = (None, *env_return[1:])
                 p.send(env_return)
             elif cmd == "reset":
-                obs, info = env.reset(**data)
+                obs = env.reset(**data)
                 if obs_bufs is not None:
                     _encode_obs(obs, obs_bufs)
                     obs = None
-                p.send((obs, info))
+                p.send((obs,))
             elif cmd == "close":
                 p.send(env.close())
                 p.close()
@@ -226,10 +226,10 @@ class SubprocEnvWorker(EnvWorker):
         result = self.parent_remote.recv()
         if isinstance(result, tuple):
             if len(result) == 2:
-                obs, info = result
+                obs = result
                 if self.share_memory:
                     obs = self._decode_obs()
-                return obs, info
+                return obs
             obs = result[0]
             if self.share_memory:
                 obs = self._decode_obs()
@@ -247,10 +247,10 @@ class SubprocEnvWorker(EnvWorker):
 
         result = self.parent_remote.recv()
         if isinstance(result, tuple):
-            obs, info = result
+            obs = result
             if self.share_memory:
                 obs = self._decode_obs()
-            return obs, info
+            return obs
         obs = result
         if self.share_memory:
             obs = self._decode_obs()

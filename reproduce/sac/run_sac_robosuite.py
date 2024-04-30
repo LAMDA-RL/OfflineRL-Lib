@@ -26,6 +26,9 @@ robosuite_env_args = {
     "use_object_obs": True,
     "reward_shaping": True,
     "hard_reset": False,
+    "has_renderer": False,
+    "has_offscreen_renderer": False,
+    "use_camera_obs": False,
 }
 
 args = parse_args()
@@ -38,7 +41,7 @@ elif args.env_type == "robosuite":
     args.robots = args.robots
 exp_name = "_".join([args.env, "seed" + str(args.seed)])
 logger = CompositeLogger(
-    log_dir=f"./log/sac/{args.name}",
+    log_dir=f"./log/{args.variant}/{args.name}",
     name=exp_name,
     logger_config={
         "TensorboardLogger": {},
@@ -55,34 +58,27 @@ elif args.env_type == "mujoco":
     env = gym.make(args.env)
     eval_env = gym.make(args.env)
 elif args.env_type == "robosuite":
-    env = GymWrapper(
-        suite.make(
-            args.env,
-            robots=args.robots,
-            **robosuite_env_args,
-        ),
-        ["robot0_proprio-state", "object-state"],
-    )
-    eval_env = GymWrapper(
-        suite.make(
-            args.env,
-            robots=args.robots,
-            **robosuite_env_args,
-        ),
-        ["robot0_proprio-state", "object-state"],
-    )
-    modder = DynamicsModder(sim=env.sim, random_state=np.random.RandomState(5))
-    modder.mod(env.cube.root_body, "mass", 5.0)  # make the cube really heavy
-    modder.update()  # make sure the changes propagate in sim
 
-    eval_modder = DynamicsModder(
-        sim=eval_env.sim, random_state=np.random.RandomState(5)
-    )
-    eval_modder.mod(eval_env.cube.root_body, "mass", 5.0)  # make the cube really heavy
-    eval_modder.update()  # make sure the changes propagate in sim
+    def create_env():
+        env = GymWrapper(
+            suite.make(
+                env_name=args.env,
+                robots=args.robots,
+                **robosuite_env_args,
+            ),
+            ["robot0_proprio-state", "object-state"],
+        )
+        modder = DynamicsModder(sim=env.sim, random_state=np.random.RandomState(5))
+        modder.mod(env.cube.root_body, "mass", 0.08 * 1.5)  # make the cube really heavy
+        modder.update()  # make sure the changes propagate in sim
+        return env
 
-obs_shape = env.observation_space.shape[0]
-action_shape = env.action_space.shape[-1]
+    envs = SubprocVectorEnv([create_env for _ in range(args.episode_per_epoch)])
+    envs.seed(args.seed)
+    eval_env = create_env()
+
+obs_shape = envs.observation_space[0].shape[0]
+action_shape = envs.action_space[0].shape[-1]
 
 actor = SquashedGaussianActor(
     backend=torch.nn.Identity(),
@@ -151,39 +147,45 @@ buffer = TransitionSimpleReplay(
 buffer.reset()
 
 # main loop
-obs, terminal = env.reset(), False
-cur_traj_length = cur_traj_return = 0
+obss, terminals = envs.reset(), [False] * args.episode_per_epoch
+dones = [False] * args.episode_per_epoch
+cur_traj_lengths = cur_traj_returns = [0] * args.episode_per_epoch
 all_traj_lengths = [0]
 all_traj_returns = [0]
 for i_epoch in trange(1, args.num_epoch + 1):
-    i_episode = 0
-    while i_episode < args.episode_per_epoch:
+    while True:
         if i_epoch < args.random_policy_epoch + 1:
-            action = env.action_space.sample()
+            actions = [act_space.sample() for act_space in envs.action_space]
         else:
-            action = policy.select_action(obs)
+            actions = [policy.select_action(obs) for obs in obss]
 
-        next_obs, reward, terminal, info = env.step(action)
-        cur_traj_length += 1
-        cur_traj_return += reward
-        if cur_traj_length >= args.max_trajectory_length:
-            terminal = False
-        buffer.add_sample(
-            {
-                "observations": obs,
-                "actions": action,
-                "next_observations": next_obs,
-                "rewards": reward,
-                "terminals": terminal,
-            }
-        )
-        obs = next_obs
-        if terminal or cur_traj_length >= args.max_trajectory_length:
-            obs = env.reset()
-            all_traj_returns.append(cur_traj_return)
-            all_traj_lengths.append(cur_traj_length)
-            cur_traj_length = cur_traj_return = 0
-            i_episode += 1
+        next_obss, rewards, terminals, info = envs.step(actions)
+        for i in range(args.episode_per_epoch):
+            if dones[i]:
+                continue
+            if terminals[i]:
+                dones[i] = True
+            cur_traj_lengths[i] += 1
+            cur_traj_returns[i] += rewards[i]
+            if cur_traj_lengths[i] >= args.max_trajectory_length:
+                terminals[i] = False
+            buffer.add_sample(
+                {
+                    "observations": obss[i],
+                    "actions": actions[i],
+                    "next_observations": next_obss[i],
+                    "rewards": rewards[i],
+                    "terminals": terminals[i],
+                }
+            )
+        obss = next_obss
+        if np.alltrue(dones):
+            obss = envs.reset()
+            all_traj_returns += cur_traj_returns
+            all_traj_lengths += cur_traj_lengths
+            cur_traj_lengths = cur_traj_returns = [0] * args.episode_per_epoch
+            dones = [False] * args.episode_per_epoch
+            break
 
     for i_step in range(args.step_per_epoch):
         if i_epoch < args.warmup_epoch + 1:

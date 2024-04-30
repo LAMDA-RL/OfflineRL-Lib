@@ -59,7 +59,7 @@ elif args.env_type == "mujoco":
 elif args.env_type == "robosuite":
     env = GymWrapper(
         suite.make(
-            args.env,
+            env_name=args.env,
             robots=args.robots,
             **robosuite_env_args,
         ),
@@ -67,7 +67,7 @@ elif args.env_type == "robosuite":
     )
     eval_env = GymWrapper(
         suite.make(
-            args.env,
+            env_name=args.env,
             robots=args.robots,
             **robosuite_env_args,
         ),
