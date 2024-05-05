@@ -34,13 +34,14 @@ For Model-Based algorithms, please check [OfflineRL-Kit](https://github.com/yiha
 ## Citing OfflineRL-Lib
 If you use OfflineRL-Lib in your work, please use the following bibtex
 ```tex
-@misc{offinerllib,
-  author = {Chenxiao Gao},
-  title = {OfflineRL-Lib: Benchmarked Implementations of Offline RL Algorithms},
-  year = {2023},
-  publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished = {\url{https://github.com/typoverflow/OfflineRL-Lib}},
+@software{
+  offlinerllib,
+  author = {Gao, Chen-Xiao and Rui, Kong},
+  month = feb,
+  title = {{OfflineRL-Lib: Benchmarked Implementations of Offline RL Algorithms}},
+  url = {https://github.com/typoverflow/OfflineRL-Lib},
+  version = {0.1.5},
+  year = {2023}
 }
 ```
 
