@@ -41,4 +41,3 @@ class wandb(NameSpace):
 debug = False
 
 critic_q_num = 2
-critic_v_num = 2

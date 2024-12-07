@@ -33,7 +33,6 @@ class SACVPolicy(BasePolicy):
         self.critic_q = critic_q
         self.critic_v = critic_v
         self.critic_q_target = make_target(self.critic_q)
-        self.critic_v_target = make_target(self.critic_v)
 
         self._is_auto_alpha = False
         if isinstance(alpha, tuple):
@@ -72,12 +71,23 @@ class SACVPolicy(BasePolicy):
         self,
         batch: Dict[str, torch.Tensor]
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
-        obss = batch["observations"]
+        obss, actions, next_obss, rewards, terminals = \
+            itemgetter("observations", "actions", "next_observations", "rewards","terminals")(batch)
         new_actions, new_logprobs, _ = self.actor.sample(obss)
-        q_value = self.critic_q(obss, new_actions)
-        v_value = self.critic_v(obss)
-        actor_loss = (self._alpha * new_logprobs - (q_value - v_value)).mean()
-        return actor_loss, {}
+        q_values = self.critic_q(obss, new_actions)
+        if len(q_values.shape) == 2:
+            q_values = q_values.unsqueeze(0)
+        q_values_min = torch.min(q_values, dim=0)[0]
+        q_values_std = torch.std(q_values, dim=0).mean().item()
+        q_values_mean = q_values.mean().item()
+        v_values = self.critic_v(obss)
+        actor_loss = (self._alpha * new_logprobs - (q_values_min - v_values)).mean()
+        return actor_loss,  {
+            "misc/q_values_std": q_values_std,
+            "misc/q_values_min": q_values_min.mean().item(),
+            "misc/q_values_mean": q_values_mean,
+            "misc/v_values": v_values.mean().item(),
+        }
 
     def _critic_q_loss(
         self, 
@@ -86,8 +96,7 @@ class SACVPolicy(BasePolicy):
         obss, actions, next_obss, rewards, terminals = \
             itemgetter("observations", "actions", "next_observations", "rewards","terminals")(batch)
         with torch.no_grad():
-            next_v_value = self.critic_v_target(next_obss)
-            target_q = rewards + self._discount * (1 - terminals) * next_v_value
+            target_q = rewards + self._discount * (1 - terminals) * self.critic_v(next_obss)
         q_value = self.critic_q(obss, actions)
         critic_q_loss = (q_value - target_q).pow(2).mean()
         return critic_q_loss, {}
@@ -100,7 +109,7 @@ class SACVPolicy(BasePolicy):
         v_value = self.critic_v(obss)
         with torch.no_grad():
             new_actions, new_logprobs, _ = self.actor.sample(obss)
-            q_value = self.critic_q(obss, new_actions)
+            q_value = self.critic_q_target(obss, new_actions).min(0)[0]
             target_v = q_value - self._alpha * new_logprobs
         critic_v_loss = (v_value - target_v).pow(2).mean()
         return critic_v_loss, {}
@@ -165,6 +174,4 @@ class SACVPolicy(BasePolicy):
 
     def _sync_weight(self) -> None:
         for target_param, param in zip(self.critic_q_target.parameters(), self.critic_q.parameters()):
-            target_param.data.copy_(target_param.data * (1.0 - self._tau) + param.data * self._tau)
-        for target_param, param in zip(self.critic_v_target.parameters(), self.critic_v.parameters()):
             target_param.data.copy_(target_param.data * (1.0 - self._tau) + param.data * self._tau)
