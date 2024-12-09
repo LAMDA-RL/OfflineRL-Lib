@@ -16,7 +16,7 @@ from UtilsRL.env.wrapper import MujocoParamOverWrite
 from offlinerllib.module.actor import SquashedGaussianActor
 from offlinerllib.module.critic import Critic
 from offlinerllib.module.net.mlp import MLP
-from offlinerllib.policy.model_free import SACPolicy
+from offlinerllib.policy.model_free import SACVPolicy
 from offlinerllib.utils.eval import eval_online_policy
 from offlinerllib.utils.gym_wrapper import GymWrapper
 
@@ -106,25 +106,33 @@ def get_policy(load_path):
         ensemble_size=args.critic_q_num,
     ).to(args.device)
 
-    policy = SACPolicy(
+    critic_v = Critic(
+        backend=torch.nn.Identity(),
+        input_dim=obs_shape,
+        hidden_dims=args.critic_hidden_dims,
+        ensemble_size=1,
+    ).to(args.device)
+
+    policy = SACVPolicy(
         actor=actor,
-        critic=critic_q,
+        critic_q=critic_q,
+        critic_v=critic_v,
         tau=args.tau,
         discount=args.discount,
         alpha=(-float(action_shape), args.alpha_lr) if args.auto_alpha else args.alpha,
         target_update_freq=args.target_update_freq,
         device=args.device,
     ).to(args.device)
-    policy.configure_optimizers(args.actor_lr, args.critic_lr)
+    policy.configure_optimizers(args.actor_lr, args.critic_lr, args.critic_lr)
     policy.load_state_dict(torch.load(load_path))
     return policy
 
 
 actor_policy = get_policy(
-    f"./out/{args.variant}/{args.name}/{args.env}/seed{args.seed}/policy/policy_50.pt"
+    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_300.pt"
 )
 critic_policy = get_policy(
-    f"./out/{args.variant}/{args.name}/{args.env}/seed{args.seed}/policy/policy_1000.pt"
+    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
 )
 
 
@@ -185,6 +193,12 @@ buffer = TransitionSimpleReplay(
             ],
             "dtype": np.float32,
         },
+        "next_v_value": {
+            "shape": [
+                1,
+            ],
+            "dtype": np.float32,
+        },
     },
 )
 
@@ -194,10 +208,23 @@ num_epoch = args.num_epoch
 collected_data = []
 obs, terminal = env.reset(), False
 cur_traj_length = cur_traj_return = 0
+
+def select_action_with_noise(
+    policy: SACVPolicy,
+    obs: np.ndarray,
+    noise_std: float = 0.3
+) -> np.ndarray:
+    action = policy.select_action(obs)
+    noise = np.random.normal(0, noise_std, size=action.shape)
+    action_noisy = action + noise
+    # Optionally clip the action to the valid range
+    action_noisy = np.clip(action_noisy, -1, 1)  # Adjust bounds if necessary for tanh
+    return action_noisy
+
 for i_epoch in trange(1, num_epoch + 1):
     buffer.reset()
     for i_step in range(1, args.max_trajectory_length + 1):
-        action = actor_policy.select_action(obs)
+        action = select_action_with_noise(actor_policy, obs)
 
         next_obs, reward, done, info = env.step(action)
         cur_traj_length += 1
@@ -221,7 +248,7 @@ for i_epoch in trange(1, num_epoch + 1):
                     "timeout": timeout,
                     "mask": 1.0,
                     "q_value": (
-                        critic_policy.critic(
+                        critic_policy.critic_q(
                             torch.tensor(obs, device=args["device"]).float(),
                             torch.tensor(action, device=args["device"]).float(),
                         ).mean(dim=0)
@@ -229,11 +256,15 @@ for i_epoch in trange(1, num_epoch + 1):
                     .cpu()
                     .numpy(),
                     "v_value": (
-                        critic_policy.critic(
+                        critic_policy.critic_v(
                             torch.tensor(obs, device=args["device"]).float(),
-                            torch.tensor(
-                                critic_policy.select_action(obs), device=args["device"]
-                            ).float(),
+                        ).mean(dim=0)
+                    )
+                    .cpu()
+                    .numpy(),
+                    "next_v_value": (
+                        critic_policy.critic_v(
+                            torch.tensor(next_obs, device=args["device"]).float(),
                         ).mean(dim=0)
                     )
                     .cpu()
@@ -276,12 +307,12 @@ for k, v in processed_data.items():
 import os
 import matplotlib.pyplot as plt
 
-saved_path = f"./datasets/variant-world/{args.variant}/{args.env}/seed{args.seed}/"
+saved_path = f"./datasets/rpl/{args.name}/{args.env}/"
 os.makedirs(saved_path, exist_ok=True)
 np.savez_compressed(saved_path + "data.npz", **processed_data)
 
 plt.hist(processed_data['episode_return'], bins=100)
 # title
-plt.title('gravity-12/Walker2d-v3')
+plt.title(f'{args.name}/{args.env}')
 # save to saved_path/episode_return.png
 plt.savefig(saved_path + 'episode_return.png')

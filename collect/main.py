@@ -12,7 +12,7 @@ from UtilsRL.env.wrapper import MujocoParamOverWrite
 from offlinerllib.module.actor import SquashedGaussianActor
 from offlinerllib.module.critic import Critic
 from offlinerllib.module.net.mlp import MLP
-from offlinerllib.policy.model_free import SACPolicy
+from offlinerllib.policy.model_free import SACVPolicy
 from offlinerllib.utils.eval import eval_online_policy
 
 args = parse_args()
@@ -22,7 +22,7 @@ elif args.env_type == "mujoco":
     args.env = args.task
 exp_name = "_".join([args.env, "seed" + str(args.seed)])
 logger = CompositeLogger(
-    log_dir=f"./log/sac/{args.name}",
+    log_dir=f"./log/sacv/{args.name}",
     name=exp_name,
     logger_config={
         "TensorboardLogger": {},
@@ -66,16 +66,24 @@ critic_q = Critic(
     ensemble_size=args.critic_q_num,
 ).to(args.device)
 
-policy = SACPolicy(
+critic_v = Critic(
+    backend=torch.nn.Identity(),
+    input_dim=obs_shape,
+    hidden_dims=args.critic_hidden_dims,
+    ensemble_size=1,
+).to(args.device)
+
+policy = SACVPolicy(
     actor=actor,
-    critic=critic_q,
+    critic_q=critic_q,
+    critic_v=critic_v,
     tau=args.tau,
     discount=args.discount,
     alpha=(-float(action_shape), args.alpha_lr) if args.auto_alpha else args.alpha,
     target_update_freq=args.target_update_freq,
     device=args.device,
 ).to(args.device)
-policy.configure_optimizers(args.actor_lr, args.critic_lr)
+policy.configure_optimizers(args.actor_lr, args.critic_lr, args.critic_lr)
 
 buffer = TransitionSimpleReplay(
     max_size=args.max_buffer_size,
@@ -175,5 +183,5 @@ for i_epoch in trange(1, args.num_epoch + 1):
         logger.log_object(
             name=f"policy_{i_epoch}.pt",
             object=policy.state_dict(),
-            path=f"./out/sac/{args.name}/{args.env}/seed{args.seed}/policy/",
+            path=f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/",
         )

@@ -204,5 +204,5 @@ for i_epoch in trange(1, args.num_epoch + 1):
         logger.log_object(
             name=f"policy_{i_epoch}.pt",
             object=policy.state_dict(),
-            path=f"./out/sac/{args.name}/{args.env}/seed{args.seed}/policy/",
+            path=f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/",
         )

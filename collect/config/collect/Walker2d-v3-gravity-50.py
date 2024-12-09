@@ -1,7 +1,7 @@
 from collect.config.collect.base import *
 
 task = "Walker2d-v3"
-overwrite_args = {"gravity": 1.2}
+overwrite_args = {"gravity": 0.5}
 do_scale = True
-variant = "gravity-12"
-num_epoch = 2000
+num_epoch = 3000
+name = "collect-gravity-50"
