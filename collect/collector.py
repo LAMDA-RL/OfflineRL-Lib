@@ -53,35 +53,15 @@ setup(args, logger)
 if args.env_type == "dmc":
     env = make_dmc(domain_name=args.domain, task_name=args.task)
     eval_env = make_dmc(domain_name=args.domain, task_name=args.task)
-elif args.env_type == "mujoco":
-    env = gym.make(args.env)
-    eval_env = gym.make(args.env)
-elif args.env_type == "robosuite":
-    env = GymWrapper(
-        suite.make(
-            env_name=args.env,
-            robots=args.robots,
-            **robosuite_env_args,
-        ),
-        ["robot0_proprio-state", "object-state"],
+else:
+    based_env = gym.make(args.env)
+    based_eval_env = gym.make(args.env)
+    env = MujocoParamOverWrite(
+        based_env, overwrite_args=args.overwrite_args, do_scale=args.do_scale
     )
-    eval_env = GymWrapper(
-        suite.make(
-            env_name=args.env,
-            robots=args.robots,
-            **robosuite_env_args,
-        ),
-        ["robot0_proprio-state", "object-state"],
+    eval_env = MujocoParamOverWrite(
+        based_eval_env, overwrite_args=args.overwrite_args, do_scale=args.do_scale
     )
-    modder = DynamicsModder(sim=env.sim, random_state=np.random.RandomState(5))
-    modder.mod(env.cube.root_body, "mass", 5.0)  # make the cube really heavy
-    modder.update()  # make sure the changes propagate in sim
-
-    eval_modder = DynamicsModder(
-        sim=eval_env.sim, random_state=np.random.RandomState(5)
-    )
-    eval_modder.mod(eval_env.cube.root_body, "mass", 5.0)  # make the cube really heavy
-    eval_modder.update()  # make sure the changes propagate in sim
 
 obs_shape = env.observation_space.shape[0]
 action_shape = env.action_space.shape[-1]
@@ -129,10 +109,10 @@ def get_policy(load_path):
 
 
 actor_policy = get_policy(
-    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_300.pt"
+    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_100.pt"
 )
 critic_policy = get_policy(
-    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
+    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_1900.pt"
 )
 
 

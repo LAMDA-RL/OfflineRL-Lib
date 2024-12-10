@@ -20,6 +20,9 @@ if args.env_type == "dmc":
     args.env = "-".join([args.domain.title(), args.task.title(), "v1"])
 elif args.env_type == "mujoco":
     args.env = args.task
+elif args.env_type == "robosuite":
+    args.env = args.task
+    args.robots = args.robots
 exp_name = "_".join([args.env, "seed" + str(args.seed)])
 logger = CompositeLogger(
     log_dir=f"./log/sacv/{args.name}",

@@ -57,28 +57,28 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99, adva
         t_idx2 = np.random.randint(0, max_timesteps - segment_len)
 
         # Extract segments
-        obs_seg_1 = data['obs'][ep_idx1, t_idx1:t_idx1+segment_len, :11]
-        obs_seg_2 = data['obs'][ep_idx2, t_idx2:t_idx2+segment_len, :11]
+        obs_seg_1 = data['obs'][ep_idx1, t_idx1:t_idx1+segment_len]
+        obs_seg_2 = data['obs'][ep_idx2, t_idx2:t_idx2+segment_len]
 
-        action_seg_1 = data['action'][ep_idx1, t_idx1:t_idx1+segment_len, :3]
-        action_seg_2 = data['action'][ep_idx2, t_idx2:t_idx2+segment_len, :3]
+        action_seg_1 = data['action'][ep_idx1, t_idx1:t_idx1+segment_len]
+        action_seg_2 = data['action'][ep_idx2, t_idx2:t_idx2+segment_len]
 
-        next_obs_seg_1 = data['next_obs'][ep_idx1, t_idx1:t_idx1+segment_len, :11]
-        next_obs_seg_2 = data['next_obs'][ep_idx2, t_idx2:t_idx2+segment_len, :11]
+        next_obs_seg_1 = data['next_obs'][ep_idx1, t_idx1:t_idx1+segment_len]
+        next_obs_seg_2 = data['next_obs'][ep_idx2, t_idx2:t_idx2+segment_len]
 
-        reward_seg_1 = data['reward'][ep_idx1, t_idx1:t_idx1+segment_len, 0]
-        reward_seg_2 = data['reward'][ep_idx2, t_idx2:t_idx2+segment_len, 0]
+        reward_seg_1 = data['reward'][ep_idx1, t_idx1:t_idx1+segment_len]
+        reward_seg_2 = data['reward'][ep_idx2, t_idx2:t_idx2+segment_len]
 
-        q_value_seg_1 = data['q_value'][ep_idx1, t_idx1:t_idx1+segment_len, 0]
-        q_value_seg_2 = data['q_value'][ep_idx2, t_idx2:t_idx2+segment_len, 0]
+        q_value_seg_1 = data['q_value'][ep_idx1, t_idx1:t_idx1+segment_len]
+        q_value_seg_2 = data['q_value'][ep_idx2, t_idx2:t_idx2+segment_len]
 
-        v_value_seg_1 = data['v_value'][ep_idx1, t_idx1:t_idx1+segment_len, 0]
-        v_value_seg_2 = data['v_value'][ep_idx2, t_idx2:t_idx2+segment_len, 0]
+        v_value_seg_1 = data['v_value'][ep_idx1, t_idx1:t_idx1+segment_len]
+        v_value_seg_2 = data['v_value'][ep_idx2, t_idx2:t_idx2+segment_len]
 
         # Extract next_v_value segments if using 'VV' method
         if advantage_method == 'VV':
-            next_v_value_seg_1 = data['next_v_value'][ep_idx1, t_idx1:t_idx1+segment_len, 0]
-            next_v_value_seg_2 = data['next_v_value'][ep_idx2, t_idx2:t_idx2+segment_len, 0]
+            next_v_value_seg_1 = data['next_v_value'][ep_idx1, t_idx1:t_idx1+segment_len]
+            next_v_value_seg_2 = data['next_v_value'][ep_idx2, t_idx2:t_idx2+segment_len]
 
         # Compute discounted advantage
         discounts = discount ** np.arange(segment_len)
