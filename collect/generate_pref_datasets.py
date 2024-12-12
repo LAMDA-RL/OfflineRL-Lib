@@ -118,11 +118,11 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         rl_dis_dir_2_val = np.sum((q_value_seg_2 - v_value_seg_2) * discounts)
         
         # Compute rl_sum and rl_dis_sum
-        rl_sum_1_val = np.sum(reward_seg_1) + v_value_seg_1[-1] - v_value_seg_1[0]
-        rl_sum_2_val = np.sum(reward_seg_2) + v_value_seg_2[-1] - v_value_seg_2[0]
+        rl_sum_1_val = np.sum(reward_seg_1) + next_v_value_seg_1[-1] - v_value_seg_1[0]
+        rl_sum_2_val = np.sum(reward_seg_2) + next_v_value_seg_2[-1] - v_value_seg_2[0]
         
-        rl_dis_sum_1_val = np.sum(reward_seg_1 * discounts) + (discount ** (segment_len - 1)) * v_value_seg_1[-1] - v_value_seg_1[0]
-        rl_dis_sum_2_val = np.sum(reward_seg_2 * discounts) + (discount ** (segment_len - 1)) * v_value_seg_2[-1] - v_value_seg_2[0]
+        rl_dis_sum_1_val = np.sum(reward_seg_1 * discounts) + (discount ** (segment_len - 1)) * next_v_value_seg_1[-1] - v_value_seg_1[0]
+        rl_dis_sum_2_val = np.sum(reward_seg_2 * discounts) + (discount ** (segment_len - 1)) * next_v_value_seg_2[-1] - v_value_seg_2[0]
 
         # Assign labels based on advantage comparisons
         rl_dir_label.append(0. if rl_dir_1_val > rl_dir_2_val else 1.)
