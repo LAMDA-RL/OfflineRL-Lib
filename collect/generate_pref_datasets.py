@@ -95,17 +95,23 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         next_obs_seg_1 = data['next_obs'][ep_idx1, t_idx1:t_idx1+segment_len]
         next_obs_seg_2 = data['next_obs'][ep_idx2, t_idx2:t_idx2+segment_len]
 
-        reward_seg_1 = data['reward'][ep_idx1, t_idx1:t_idx1+segment_len]
-        reward_seg_2 = data['reward'][ep_idx2, t_idx2:t_idx2+segment_len]
+        reward_seg_1 = data['reward'][ep_idx1, t_idx1:t_idx1+segment_len].squeeze()
+        reward_seg_2 = data['reward'][ep_idx2, t_idx2:t_idx2+segment_len].squeeze()
 
-        q_value_seg_1 = data['q_value'][ep_idx1, t_idx1:t_idx1+segment_len]
-        q_value_seg_2 = data['q_value'][ep_idx2, t_idx2:t_idx2+segment_len]
+        q_value_seg_1 = data['q_value'][ep_idx1, t_idx1:t_idx1+segment_len].squeeze()
+        q_value_seg_2 = data['q_value'][ep_idx2, t_idx2:t_idx2+segment_len].squeeze()
 
-        v_value_seg_1 = data['v_value'][ep_idx1, t_idx1:t_idx1+segment_len]
-        v_value_seg_2 = data['v_value'][ep_idx2, t_idx2:t_idx2+segment_len]
+        v_value_seg_1 = data['v_value'][ep_idx1, t_idx1:t_idx1+segment_len].squeeze()
+        v_value_seg_2 = data['v_value'][ep_idx2, t_idx2:t_idx2+segment_len].squeeze()
 
-        next_v_value_seg_1 = data['next_v_value'][ep_idx1, t_idx1:t_idx1+segment_len]
-        next_v_value_seg_2 = data['next_v_value'][ep_idx2, t_idx2:t_idx2+segment_len]
+        next_v_value_seg_1 = data['next_v_value'][ep_idx1, t_idx1:t_idx1+segment_len].squeeze()
+        next_v_value_seg_2 = data['next_v_value'][ep_idx2, t_idx2:t_idx2+segment_len].squeeze()
+
+        # label_keys:
+        # rl_dir: \sum_{t} Q(s_t, a_t) - V(s_t)
+        # rl_dis_dir: \sum_{t} \gamma^t (Q(s_t, a_t) - V(s_t))
+        # rl_sum: \sum_{t} [r_t] + V(s_T) - V(s_0)
+        # rl_dis_sum: \sum_{t} \sum_{t} [\gamma^t r_t] + \gamma^{T-1} V(s_T) - V(s_0)
 
         # Compute discounted advantage
         discounts = discount ** np.arange(segment_len)
