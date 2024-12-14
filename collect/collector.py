@@ -109,10 +109,10 @@ def get_policy(load_path):
 
 
 actor_policy = get_policy(
-    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_100.pt"
+    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_500.pt"
 )
 critic_policy = get_policy(
-    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_1900.pt"
+    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
 )
 
 
@@ -192,7 +192,7 @@ cur_traj_length = cur_traj_return = 0
 def select_action_with_noise(
     policy: SACVPolicy,
     obs: np.ndarray,
-    noise_std: float = 0.3
+    noise_std: float = 0.2,
 ) -> np.ndarray:
     action = policy.select_action(obs)
     noise = np.random.normal(0, noise_std, size=action.shape)

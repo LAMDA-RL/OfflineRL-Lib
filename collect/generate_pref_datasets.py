@@ -41,6 +41,8 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
     reward_2 = []
     timestep_1 = []
     timestep_2 = []
+    terminal_1 = []
+    terminal_2 = []
     rl_dir_label = []
     rl_dis_dir_label = []
     rl_sum_label = []
@@ -66,17 +68,26 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
     # Determine trajectory lengths using data['mask']
     trajectory_lengths = np.sum(data['mask'], axis=1).astype(int)
     
-    # Precompute all valid segment indices where masks are all 1
-    segment_indices = [
-        (ep_idx, seg_idx * segment_len, (seg_idx + 1) * segment_len)
-        for ep_idx in range(data['obs'].shape[0])
-        for seg_idx in range(trajectory_lengths[ep_idx] // segment_len)
-    ]
+    # V1: Precompute all valid segment indices where masks are all 1
+    # segment_indices = [
+    #     (ep_idx, seg_idx * segment_len, (seg_idx + 1) * segment_len)
+    #     for ep_idx in range(data['obs'].shape[0])
+    #     for seg_idx in range(trajectory_lengths[ep_idx] // segment_len)
+    # ]
     
     for _ in range(num_samples):
-        # Use precomputed segment_indices to select segments
-        ep_idx1, t_start1, t_end1 = random.choice(segment_indices)
-        ep_idx2, t_start2, t_end2 = random.choice(segment_indices)
+
+        # V1: Use precomputed segment_indices to select segments
+        # ep_idx1, t_start1, t_end1 = random.choice(segment_indices)
+        # ep_idx2, t_start2, t_end2 = random.choice(segment_indices)
+
+        # V2: random start
+        ep_idx1 = random.randint(0, data['obs'].shape[0] - 1)
+        ep_idx2 = random.randint(0, data['obs'].shape[0] - 1)
+        t_start1 = random.randint(0, trajectory_lengths[ep_idx1] - segment_len)
+        t_start2 = random.randint(0, trajectory_lengths[ep_idx2] - segment_len)
+        t_end1 = t_start1 + segment_len
+        t_end2 = t_start2 + segment_len
         
         # Ensure masks are all 1
         assert np.all(data['mask'][ep_idx1, t_start1:t_end1] == 1)
@@ -107,6 +118,10 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         next_v_value_seg_1 = data['next_v_value'][ep_idx1, t_idx1:t_idx1+segment_len].squeeze()
         next_v_value_seg_2 = data['next_v_value'][ep_idx2, t_idx2:t_idx2+segment_len].squeeze()
 
+        # terminal
+        terminal_seg_1 = data['terminal'][ep_idx1, t_idx1:t_idx1+segment_len].astype(float).squeeze()
+        terminal_seg_2 = data['terminal'][ep_idx2, t_idx2:t_idx2+segment_len].astype(float).squeeze()
+
         # label_keys:
         # rl_dir: \sum_{t} Q(s_t, a_t) - V(s_t)
         # rl_dis_dir: \sum_{t} \gamma^t (Q(s_t, a_t) - V(s_t))
@@ -124,11 +139,11 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         rl_dis_dir_2_val = np.sum((q_value_seg_2 - v_value_seg_2) * discounts)
         
         # Compute rl_sum and rl_dis_sum
-        rl_sum_1_val = np.sum(reward_seg_1) + next_v_value_seg_1[-1] - v_value_seg_1[0]
-        rl_sum_2_val = np.sum(reward_seg_2) + next_v_value_seg_2[-1] - v_value_seg_2[0]
-        
-        rl_dis_sum_1_val = np.sum(reward_seg_1 * discounts) + (discount ** (segment_len - 1)) * next_v_value_seg_1[-1] - v_value_seg_1[0]
-        rl_dis_sum_2_val = np.sum(reward_seg_2 * discounts) + (discount ** (segment_len - 1)) * next_v_value_seg_2[-1] - v_value_seg_2[0]
+        rl_sum_1_val = np.sum(reward_seg_1) + (1-terminal_seg_1[-1]) * next_v_value_seg_1[-1] - v_value_seg_1[0]
+        rl_sum_2_val = np.sum(reward_seg_2) + (1-terminal_seg_2[-1]) * next_v_value_seg_2[-1] - v_value_seg_2[0]
+
+        rl_dis_sum_1_val = np.sum(reward_seg_1 * discounts) + (1-terminal_seg_1[-1]) * (discount ** segment_len) * next_v_value_seg_1[-1] - v_value_seg_1[0]
+        rl_dis_sum_2_val = np.sum(reward_seg_2 * discounts) + (1-terminal_seg_2[-1]) * (discount ** segment_len) * next_v_value_seg_2[-1] - v_value_seg_2[0]
 
         # Assign labels based on advantage comparisons
         rl_dir_label.append(0. if rl_dir_1_val > rl_dir_2_val else 1.)
@@ -146,6 +161,8 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         reward_2.append(reward_seg_2)
         timestep_1.append(np.arange(t_idx1, t_idx1+segment_len))
         timestep_2.append(np.arange(t_idx2, t_idx2+segment_len))
+        terminal_1.append(terminal_seg_1)
+        terminal_2.append(terminal_seg_2)
         rl_dir_1.append(rl_dir_1_val)
         rl_dir_2.append(rl_dir_2_val)
         rl_dis_dir_1.append(rl_dis_dir_1_val)
@@ -174,6 +191,8 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         'reward_2': np.array(reward_2),
         'timestep_1': np.array(timestep_1),
         'timestep_2': np.array(timestep_2),
+        'terminal_1': np.array(terminal_1),
+        'terminal_2': np.array(terminal_2),
         'q_value_1': np.array(q_value_1, dtype=float),
         'q_value_2': np.array(q_value_2, dtype=float),
         'v_value_1': np.array(v_value_1, dtype=float),
@@ -197,7 +216,7 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
 
 # Generate preference datasets using batch processing
 segment_len = 64
-num_samples_train = 10000
+num_samples_train = 20000
 num_samples_eval = 1000
 batch_size_train = 1350
 batch_size_eval = 1350
