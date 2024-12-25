@@ -109,10 +109,10 @@ def get_policy(load_path):
 
 
 actor_policy = get_policy(
-    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_500.pt"
+    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_500.pt"
 )
 critic_policy = get_policy(
-    f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
+    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
 )
 
 
@@ -203,7 +203,7 @@ def select_action_with_noise(
 
 for i_epoch in trange(1, num_epoch + 1):
     buffer.reset()
-    for i_step in range(1, args.max_trajectory_length + 1):
+    for i_step in range(args.max_trajectory_length):
         action = select_action_with_noise(actor_policy, obs)
 
         next_obs, reward, done, info = env.step(action)
@@ -212,7 +212,7 @@ for i_epoch in trange(1, num_epoch + 1):
 
         timeout = False
         terminal = False
-        if i_step == args.max_trajectory_length:
+        if i_step == args.max_trajectory_length - 1:
             timeout = True
         elif done:
             terminal = True

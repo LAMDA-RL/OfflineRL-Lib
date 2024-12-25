@@ -1,3 +1,4 @@
+import os
 import gym
 import numpy as np
 import torch
@@ -25,7 +26,7 @@ elif args.env_type == "robosuite":
     args.robots = args.robots
 exp_name = "_".join([args.env, "seed" + str(args.seed)])
 logger = CompositeLogger(
-    log_dir=f"./log/sacv/{args.name}",
+    log_dir=f"./log/collect/{args.name}",
     name=exp_name,
     logger_config={
         "TensorboardLogger": {},
@@ -125,9 +126,59 @@ buffer = TransitionSimpleReplay(
 )
 buffer.reset()
 
+traj_buffer = TransitionSimpleReplay(
+    max_size=args.max_trajectory_length,
+    field_specs={
+        "obs": {
+            "shape": [
+                obs_shape,
+            ],
+            "dtype": np.float32,
+        },
+        "action": {
+            "shape": [
+                action_shape,
+            ],
+            "dtype": np.float32,
+        },
+        "next_obs": {
+            "shape": [
+                obs_shape,
+            ],
+            "dtype": np.float32,
+        },
+        "reward": {
+            "shape": [
+                1,
+            ],
+            "dtype": np.float32,
+        },
+        "terminal": {
+            "shape": [
+                1,
+            ],
+            "dtype": np.float32,
+        },
+        "timeout": {
+            "shape": [
+                1,
+            ],
+            "dtype": np.float32,
+        },
+        "mask": {
+            "shape": [
+                1,
+            ],
+            "dtype": np.float32,
+        },
+    },
+)
+
 # main loop
 obs, terminal = env.reset(), False
+traj_buffer.reset()
 cur_traj_length = cur_traj_return = 0
+collected_data = []
 all_traj_lengths = [0]
 all_traj_returns = [0]
 for i_epoch in trange(1, args.num_epoch + 1):
@@ -137,26 +188,49 @@ for i_epoch in trange(1, args.num_epoch + 1):
         else:
             action = policy.select_action(obs)
 
-        next_obs, reward, terminal, info = env.step(action)
+        next_obs, reward, done, info = env.step(action)
         cur_traj_length += 1
         cur_traj_return += reward
-        if cur_traj_length >= args.max_trajectory_length:
-            terminal = False
+        timeout = False
+        terminal = False
+        if i_step == args.max_trajectory_length - 1:
+            timeout = True
+        elif done:
+            terminal = True
         buffer.add_sample(
             {
                 "observations": obs,
                 "actions": action,
                 "next_observations": next_obs,
                 "rewards": reward,
-                "terminals": terminal,
+                "terminals": done,
+            }
+        )
+        traj_buffer.add_sample(
+            {
+                "obs": obs,
+                "action": action,
+                "next_obs": next_obs,
+                "reward": reward,
+                "terminal": terminal,
+                "timeout": timeout,
+                "mask": 1.0,
             }
         )
         obs = next_obs
-        if terminal or cur_traj_length >= args.max_trajectory_length:
+        if terminal or timeout or cur_traj_length >= args.max_trajectory_length:
             obs = env.reset()
             all_traj_returns.append(cur_traj_return)
             all_traj_lengths.append(cur_traj_length)
+            collected_data.append(
+                {
+                    **traj_buffer.fields,
+                    "episode_return": cur_traj_return,
+                    "episode_length": cur_traj_length,
+                }
+            )
             cur_traj_length = cur_traj_return = 0
+            traj_buffer.reset()
 
         if i_epoch < args.warmup_epoch + 1:
             train_metrics = {}
@@ -186,5 +260,33 @@ for i_epoch in trange(1, args.num_epoch + 1):
         logger.log_object(
             name=f"policy_{i_epoch}.pt",
             object=policy.state_dict(),
-            path=f"./out/sacv/{args.name}/{args.env}/seed{args.seed}/policy/",
+            path=f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/",
         )
+
+processed_data = {k: [] for k in collected_data[0].keys()}
+for data in collected_data:
+    for k, v in data.items():
+        processed_data[k].append(v)
+assert all(
+    [
+        len(v) == len(processed_data[list(processed_data.keys())[0]])
+        for k, v in processed_data.items()
+    ]
+)
+processed_data = {k: np.array(v) for k, v in processed_data.items()}
+processed_data["mask"] = processed_data["mask"].squeeze(-1)
+for k, v in processed_data.items():
+    print(k, v.shape)
+
+# create folder if not exist
+import matplotlib.pyplot as plt
+
+saved_path = f"./datasets/rpl/{args.name}/{args.env}/"
+os.makedirs(saved_path, exist_ok=True)
+np.savez_compressed(saved_path + "replay.npz", **processed_data)
+
+plt.hist(processed_data['episode_return'], bins=100)
+# title
+plt.title(f'{args.name}/{args.env}')
+# save to saved_path/episode_return.png
+plt.savefig(saved_path + 'replay_episode_return.png')

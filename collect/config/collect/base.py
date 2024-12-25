@@ -22,7 +22,7 @@ batch_size = 256
 
 eval_interval = 10
 eval_episode = 10
-save_interval = 50
+save_interval = 10
 log_interval = 10
 warmup_epoch = 2
 random_policy_epoch = 5
