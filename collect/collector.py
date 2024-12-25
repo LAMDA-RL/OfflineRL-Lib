@@ -238,14 +238,14 @@ for i_epoch in trange(1, num_epoch + 1):
                     "v_value": (
                         critic_policy.critic_v(
                             torch.tensor(obs, device=args["device"]).float(),
-                        ).mean(dim=0)
+                        )
                     )
                     .cpu()
                     .numpy(),
                     "next_v_value": (
                         critic_policy.critic_v(
                             torch.tensor(next_obs, device=args["device"]).float(),
-                        ).mean(dim=0)
+                        )
                     )
                     .cpu()
                     .numpy(),
