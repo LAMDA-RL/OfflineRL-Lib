@@ -200,7 +200,7 @@ def select_action_with_noise(
 
 for i_epoch in trange(0, num_epoch):
     if i_epoch % (num_epoch // len(actor_policy_ckpt_list)) == 0:
-        ckpt_index = i_epoch // (num_epoch // len(actor_policy_ckpt_list))
+        ckpt_index = min(i_epoch // (num_epoch // len(actor_policy_ckpt_list)), len(actor_policy_ckpt_list) - 1)
         actor_policy = get_policy(
             f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_{str(actor_policy_ckpt_list[ckpt_index])}.pt"
         )
