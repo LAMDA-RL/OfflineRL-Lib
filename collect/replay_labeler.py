@@ -118,7 +118,7 @@ import os
 import matplotlib.pyplot as plt
 
 
-saved_path = f"./datasets/rpl/{args.name}/{args.env}/"
+saved_path = f"./datasets/rpl/{args.env}/{args.name}/"
 os.makedirs(saved_path, exist_ok=True)
 raw_data = np.load(saved_path + "replay.npz")
 processed_data = {}

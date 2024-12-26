@@ -289,7 +289,7 @@ for k, v in processed_data.items():
 import os
 import matplotlib.pyplot as plt
 
-saved_path = f"./datasets/rpl/{args.name}/{args.env}/"
+saved_path = f"./datasets/rpl/{args.env}/{args.name}/"
 os.makedirs(saved_path, exist_ok=True)
 np.savez_compressed(saved_path + "data.npz", **processed_data)
 

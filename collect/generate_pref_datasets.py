@@ -213,7 +213,7 @@ def generate_data(raw_data_path, prefix=""):
     preference_eval_data = {k: v[train_num:] for k, v in data.items()}
 
     # Save offline datasets
-    saved_path = f"./datasets/rpl/{args.name}/{args.env}/" if args.data_saved_path is None else args.data_saved_path + f"/{args.name}/{args.env}/"
+    saved_path = f"./datasets/rpl/{args.env}/{args.name}/" if args.data_saved_path is None else args.data_saved_path + f"/{args.env}/{args.name}/"
     print(f"Saving data to {saved_path}")
     os.makedirs(saved_path, exist_ok=True)
 
@@ -274,7 +274,7 @@ def generate_data(raw_data_path, prefix=""):
 
 
 # offline data
-generate_data(f"./datasets/rpl/{args.name}/{args.env}/data.npz")
+generate_data(f"./datasets/rpl/{args.env}/{args.name}/data.npz")
 
 # replay data
-generate_data(f"./datasets/rpl/{args.name}/{args.env}/labeled_replay.npz", prefix="replay_")
+generate_data(f"./datasets/rpl/{args.env}/{args.name}/labeled_replay.npz", prefix="replay_")
