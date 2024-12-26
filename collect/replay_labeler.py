@@ -109,7 +109,7 @@ def get_policy(load_path):
 
 
 critic_policy = get_policy(
-    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
+    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_1000.pt"
 )
 
 

@@ -13,21 +13,6 @@ elif args.env_type == "mujoco":
 elif args.env_type == "robosuite":
     args.env = args.task
     args.robots = args.robots
-data_path = f"./datasets/rpl/{args.name}/{args.env}/data.npz"
-
-# Load data file
-data = np.load(data_path, allow_pickle=True)
-print("Loaded data shapes:")
-for k, v in data.items():
-    print(k, v.shape)
-
-# Split data into datasets
-preference_train_data = {k: v[:2700] for k, v in data.items()}
-preference_eval_data = {k: v[2700:] for k, v in data.items()}
-
-# Save offline datasets
-saved_path = f"./datasets/rpl/{args.name}/{args.env}/"
-os.makedirs(saved_path, exist_ok=True)
 
 # Function to generate preference data
 def generate_preference_data(data, num_samples, segment_len, discount=0.99):
@@ -214,57 +199,82 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
     }
     return preference_data
 
-# Generate preference datasets using batch processing
-segment_len = 64
-num_samples_train = 20000
-num_samples_eval = 1000
-batch_size_train = 1350
-batch_size_eval = 1350
+def generate_data(raw_data_path, prefix=""):
+    data = np.load(raw_data_path, allow_pickle=True)
+    print("Loaded data shapes:")
+    for k, v in data.items():
+        print(k, v.shape)
+        
+    # Ratio of data to use for training
+    train_num = int(0.9 * data['obs'].shape[0])
 
-# Function to process and save preference data in batches
-def process_and_save(preference_data, num_samples, segment_len, discount, batch_size, save_prefix):
-    total = preference_data['obs'].shape[0]
-    # Initialize lists to accumulate batch data
-    accumulated_data = {}
-    num_batch = len(list(range(0, total, batch_size)))
-    for start in range(0, total, batch_size):
-        batch_data = {k: v[start:start+batch_size] for k, v in preference_data.items()}
-        preference_batch = generate_preference_data(
-            batch_data,
-            num_samples // num_batch,
-            segment_len,
-            discount=discount
-        )
-        # Accumulate batch data
-        for key in preference_batch:
-            if key not in accumulated_data:
-                accumulated_data[key] = []
-            accumulated_data[key].append(preference_batch[key])
-    # Concatenate all batches
-    for key in accumulated_data:
-        accumulated_data[key] = np.concatenate(accumulated_data[key], axis=0)
-    # Save accumulated preference data to a single file
-    np.savez_compressed(saved_path + f"{save_prefix}_data.npz", **accumulated_data)
-    
-# random seed
-np.random.seed(42)
+    # Split data into datasets
+    preference_train_data = {k: v[:train_num] for k, v in data.items()}
+    preference_eval_data = {k: v[train_num:] for k, v in data.items()}
 
-# Generate and save preference data for training
-process_and_save(
-    preference_train_data,
-    num_samples_train,
-    segment_len,
-    discount=args.discount,
-    batch_size=batch_size_train,
-    save_prefix="preference_train"
-)
+    # Save offline datasets
+    saved_path = f"./datasets/rpl/{args.name}/{args.env}/" if args.data_saved_path is None else args.data_saved_path + f"/{args.name}/{args.env}/"
+    print(f"Saving data to {saved_path}")
+    os.makedirs(saved_path, exist_ok=True)
 
-# Generate and save preference data for evaluation
-process_and_save(
-    preference_eval_data,
-    num_samples_eval,
-    segment_len,
-    discount=args.discount,
-    batch_size=batch_size_eval,
-    save_prefix="preference_eval"
-)
+    # Generate preference datasets using batch processing
+    segment_len = 64
+    num_samples_train = 20000
+    num_samples_eval = 1000
+    batch_size_train = 1350
+    batch_size_eval = 1350
+
+    # Function to process and save preference data in batches
+    def process_and_save(preference_data, num_samples, segment_len, discount, batch_size, save_prefix):
+        total = preference_data['obs'].shape[0]
+        # Initialize lists to accumulate batch data
+        accumulated_data = {}
+        num_batch = len(list(range(0, total, batch_size)))
+        for start in range(0, total, batch_size):
+            batch_data = {k: v[start:start+batch_size] for k, v in preference_data.items()}
+            preference_batch = generate_preference_data(
+                batch_data,
+                num_samples // num_batch,
+                segment_len,
+                discount=discount
+            )
+            # Accumulate batch data
+            for key in preference_batch:
+                if key not in accumulated_data:
+                    accumulated_data[key] = []
+                accumulated_data[key].append(preference_batch[key])
+        # Concatenate all batches
+        for key in accumulated_data:
+            accumulated_data[key] = np.concatenate(accumulated_data[key], axis=0)
+        # Save accumulated preference data to a single file
+        np.savez_compressed(saved_path + f"{save_prefix}_data.npz", **accumulated_data)
+        
+    # random seed
+    np.random.seed(42)
+
+    # Generate and save preference data for training
+    process_and_save(
+        preference_train_data,
+        num_samples_train,
+        segment_len,
+        discount=args.discount,
+        batch_size=batch_size_train,
+        save_prefix=f"{prefix}preference_train"
+    )
+
+    # Generate and save preference data for evaluation
+    process_and_save(
+        preference_eval_data,
+        num_samples_eval,
+        segment_len,
+        discount=args.discount,
+        batch_size=batch_size_eval,
+        save_prefix=f"{prefix}preference_eval"
+    )
+
+
+# offline data
+generate_data(f"./datasets/rpl/{args.name}/{args.env}/data.npz")
+
+# replay data
+generate_data(f"./datasets/rpl/{args.name}/{args.env}/labeled_replay.npz", prefix="replay_")

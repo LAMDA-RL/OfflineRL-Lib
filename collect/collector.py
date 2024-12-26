@@ -107,12 +107,9 @@ def get_policy(load_path):
     policy.load_state_dict(torch.load(load_path))
     return policy
 
-
-actor_policy = get_policy(
-    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_500.pt"
-)
+actor_policy_ckpt_list = args.actor_policy_ckpt_list
 critic_policy = get_policy(
-    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
+    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_1000.pt"
 )
 
 
@@ -201,7 +198,12 @@ def select_action_with_noise(
     action_noisy = np.clip(action_noisy, -1, 1)  # Adjust bounds if necessary for tanh
     return action_noisy
 
-for i_epoch in trange(1, num_epoch + 1):
+for i_epoch in trange(0, num_epoch):
+    if i_epoch % (num_epoch // len(actor_policy_ckpt_list)) == 0:
+        ckpt_index = i_epoch // (num_epoch // len(actor_policy_ckpt_list))
+        actor_policy = get_policy(
+            f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_{str(actor_policy_ckpt_list[ckpt_index])}.pt"
+        )
     buffer.reset()
     for i_step in range(args.max_trajectory_length):
         action = select_action_with_noise(actor_policy, obs)

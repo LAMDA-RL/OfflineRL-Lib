@@ -41,3 +41,4 @@ class wandb(NameSpace):
 debug = False
 
 critic_q_num = 2
+actor_policy_ckpt_list = [40, 50, 60, 100, 300, 1000]
