@@ -32,6 +32,8 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
     rl_dis_dir_label = []
     rl_sum_label = []
     rl_dis_sum_label = []
+    rl_reward_sum_label = []
+    rl_dis_reward_sum_label = []
     rl_dir_1 = []
     rl_dir_2 = []
     rl_dis_dir_1 = []
@@ -40,6 +42,10 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
     rl_sum_2 = []
     rl_dis_sum_1 = []
     rl_dis_sum_2 = []
+    rl_reward_sum_1 = []
+    rl_reward_sum_2 = []
+    rl_dis_reward_sum_1 = []
+    rl_dis_reward_sum_2 = []
     q_value_1 = []
     q_value_2 = []
     v_value_1 = []
@@ -112,6 +118,8 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         # rl_dis_dir: \sum_{t} \gamma^t (Q(s_t, a_t) - V(s_t))
         # rl_sum: \sum_{t} [r_t] + V(s_T) - V(s_0)
         # rl_dis_sum: \sum_{t} \sum_{t} [\gamma^t r_t] + \gamma^{T-1} V(s_T) - V(s_0)
+        # rl_reward_sum: \sum_{t} r_t
+        # rl_dis_reward_sum: \sum_{t} \gamma^t r_t
 
         # Compute discounted advantage
         discounts = discount ** np.arange(segment_len)
@@ -130,11 +138,20 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         rl_dis_sum_1_val = np.sum(reward_seg_1 * discounts) + (1-terminal_seg_1[-1]) * (discount ** segment_len) * next_v_value_seg_1[-1] - v_value_seg_1[0]
         rl_dis_sum_2_val = np.sum(reward_seg_2 * discounts) + (1-terminal_seg_2[-1]) * (discount ** segment_len) * next_v_value_seg_2[-1] - v_value_seg_2[0]
 
+        # Compute rl_reward_sum and rl_dis_reward_sum
+        rl_reward_sum_1_val = np.sum(reward_seg_1)
+        rl_reward_sum_2_val = np.sum(reward_seg_2)
+        
+        rl_dis_reward_sum_1_val = np.sum(reward_seg_1 * discounts)
+        rl_dis_reward_sum_2_val = np.sum(reward_seg_2 * discounts)
+
         # Assign labels based on advantage comparisons
         rl_dir_label.append(0. if rl_dir_1_val > rl_dir_2_val else 1.)
         rl_dis_dir_label.append(0. if rl_dis_dir_1_val > rl_dis_dir_2_val else 1.)
         rl_sum_label.append(0. if rl_sum_1_val > rl_sum_2_val else 1.)
         rl_dis_sum_label.append(0. if rl_dis_sum_1_val > rl_dis_sum_2_val else 1.)
+        rl_reward_sum_label.append(0. if rl_reward_sum_1_val > rl_reward_sum_2_val else 1.)
+        rl_dis_reward_sum_label.append(0. if rl_dis_reward_sum_1_val > rl_dis_reward_sum_2_val else 1.)
 
         obs_1.append(obs_seg_1)
         obs_2.append(obs_seg_2)
@@ -156,6 +173,10 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         rl_sum_2.append(rl_sum_2_val)
         rl_dis_sum_1.append(rl_dis_sum_1_val)
         rl_dis_sum_2.append(rl_dis_sum_2_val)
+        rl_reward_sum_1.append(rl_reward_sum_1_val)
+        rl_reward_sum_2.append(rl_reward_sum_2_val)
+        rl_dis_reward_sum_1.append(rl_dis_reward_sum_1_val)
+        rl_dis_reward_sum_2.append(rl_dis_reward_sum_2_val)
         # Append additional variables
         q_value_1.append(q_value_seg_1)
         q_value_2.append(q_value_seg_2)
@@ -188,6 +209,8 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         'rl_dis_dir_label': np.array(rl_dis_dir_label, dtype=float),
         'rl_sum_label': np.array(rl_sum_label, dtype=float),
         'rl_dis_sum_label': np.array(rl_dis_sum_label, dtype=float),
+        'rl_reward_sum_label': np.array(rl_reward_sum_label, dtype=float),
+        'rl_dis_reward_sum_label': np.array(rl_dis_reward_sum_label, dtype=float),
         'rl_dir_1': np.array(rl_dir_1, dtype=float),
         'rl_dir_2': np.array(rl_dir_2, dtype=float),
         'rl_dis_dir_1': np.array(rl_dis_dir_1, dtype=float),
@@ -196,6 +219,10 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         'rl_sum_2': np.array(rl_sum_2, dtype=float).squeeze(),
         'rl_dis_sum_1': np.array(rl_dis_sum_1, dtype=float).squeeze(),
         'rl_dis_sum_2': np.array(rl_dis_sum_2, dtype=float).squeeze(),
+        'rl_reward_sum_1': np.array(rl_reward_sum_1, dtype=float).squeeze(),
+        'rl_reward_sum_2': np.array(rl_reward_sum_2, dtype=float).squeeze(),
+        'rl_dis_reward_sum_1': np.array(rl_dis_reward_sum_1, dtype=float).squeeze(),
+        'rl_dis_reward_sum_2': np.array(rl_dis_reward_sum_2, dtype=float).squeeze(),
     }
     return preference_data
 
@@ -246,7 +273,34 @@ def generate_data(raw_data_path, prefix=""):
         # Concatenate all batches
         for key in accumulated_data:
             accumulated_data[key] = np.concatenate(accumulated_data[key], axis=0)
-        # Save accumulated preference data to a single file
+
+        # Compare different labels and save to file
+        label_types = [
+            'rl_dir_label', 
+            'rl_dis_dir_label', 
+            'rl_sum_label', 
+            'rl_dis_sum_label',
+            'rl_reward_sum_label',
+            'rl_dis_reward_sum_label'
+        ]
+        
+        # Create analysis file path
+        analysis_path = os.path.join(saved_path, f"{save_prefix}_label_analysis.txt")
+        
+        with open(analysis_path, 'w') as f:
+            f.write(f"Label disagreement analysis for {save_prefix}:\n")
+            for i in range(len(label_types)):
+                for j in range(i+1, len(label_types)):
+                    label1 = label_types[i]
+                    label2 = label_types[j]
+                    disagreement = accumulated_data[label1] != accumulated_data[label2]
+                    disagreement_count = np.sum(disagreement)
+                    disagreement_ratio = disagreement_count / len(accumulated_data[label1])
+                    f.write(f"\n{label1} vs {label2}:\n")
+                    f.write(f"  Disagreement count: {disagreement_count}\n")
+                    f.write(f"  Disagreement ratio: {disagreement_ratio:.4f}\n")
+        
+        # Save accumulated preference data
         np.savez_compressed(saved_path + f"{save_prefix}_data.npz", **accumulated_data)
         
     # random seed
