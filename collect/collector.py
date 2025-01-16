@@ -109,7 +109,7 @@ def get_policy(load_path):
 
 actor_policy_ckpt_list = args.actor_policy_ckpt_list
 critic_policy = get_policy(
-    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_1000.pt"
+    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
 )
 
 
@@ -171,6 +171,12 @@ buffer = TransitionSimpleReplay(
             "dtype": np.float32,
         },
         "next_v_value": {
+            "shape": [
+                1,
+            ],
+            "dtype": np.float32,
+        },
+        "logprob": {
             "shape": [
                 1,
             ],
@@ -251,6 +257,14 @@ for i_epoch in trange(0, num_epoch):
                     )
                     .cpu()
                     .numpy(),
+                    "logprob": (
+                        critic_policy.actor.evaluate(
+                            torch.tensor(obs, device=args["device"]).float(),
+                            torch.tensor(action, device=args["device"]).float(),
+                        )[0]
+                    )
+                    .cpu()
+                    .numpy(),
                 }
             )
         obs = next_obs
@@ -280,7 +294,6 @@ assert all(
 processed_data = {k: np.array(v) for k, v in processed_data.items()}
 for k, v in processed_data.items():
     print(k, v.shape)
-# make masks (10000, 1000, 1) to masks (10000, 1000)
 processed_data["mask"] = processed_data["mask"].squeeze(-1)
 for k, v in processed_data.items():
     print(k, v.shape)

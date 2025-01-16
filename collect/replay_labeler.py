@@ -109,7 +109,7 @@ def get_policy(load_path):
 
 
 critic_policy = get_policy(
-    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_1000.pt"
+    f"./out/collect/{args.name}/{args.env}/seed{args.seed}/policy/policy_3000.pt"
 )
 
 
@@ -131,4 +131,5 @@ with torch.no_grad():
     processed_data["q_value"] = critic_policy.critic_q(obs, action).mean(dim=0).cpu().numpy()
     processed_data["v_value"] = critic_policy.critic_v(obs).cpu().numpy()
     processed_data["next_v_value"] = critic_policy.critic_v(next_obs).cpu().numpy()
+    processed_data["logprob"] = critic_policy.actor.evaluate(obs, action)[0].cpu().numpy()
 np.savez_compressed(saved_path + "labeled_replay.npz", **processed_data)

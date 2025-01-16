@@ -206,31 +206,33 @@ for i_epoch in trange(1, args.num_epoch + 1):
                 "terminals": done,
             }
         )
-        traj_buffer.add_sample(
-            {
-                "obs": obs,
-                "action": action,
-                "next_obs": next_obs,
-                "reward": reward,
-                "terminal": terminal,
-                "timeout": timeout,
-                "mask": 1.0,
-            }
-        )
+        if i_epoch <= 1000:
+            traj_buffer.add_sample(
+                {
+                    "obs": obs,
+                    "action": action,
+                    "next_obs": next_obs,
+                    "reward": reward,
+                    "terminal": terminal,
+                    "timeout": timeout,
+                    "mask": 1.0,
+                }
+            )
         obs = next_obs
         if terminal or timeout or cur_traj_length >= args.max_trajectory_length:
             obs = env.reset()
             all_traj_returns.append(cur_traj_return)
             all_traj_lengths.append(cur_traj_length)
-            collected_data.append(
-                {
-                    **traj_buffer.fields,
-                    "episode_return": cur_traj_return,
-                    "episode_length": cur_traj_length,
-                }
-            )
+            if i_epoch <= 1000:
+                collected_data.append(
+                    {
+                        **traj_buffer.fields,
+                        "episode_return": cur_traj_return,
+                        "episode_length": cur_traj_length,
+                    }
+                )
+                traj_buffer.reset()
             cur_traj_length = cur_traj_return = 0
-            traj_buffer.reset()
 
         if i_epoch < args.warmup_epoch + 1:
             train_metrics = {}
@@ -256,7 +258,7 @@ for i_epoch in trange(1, args.num_epoch + 1):
             step=i_epoch,
         )
 
-    if i_epoch % args.save_interval == 0:
+    if i_epoch % args.save_interval == 0 and i_epoch <= 1000 or i_epoch == 3000:
         logger.log_object(
             name=f"policy_{i_epoch}.pt",
             object=policy.state_dict(),

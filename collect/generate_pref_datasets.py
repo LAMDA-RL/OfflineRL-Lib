@@ -46,6 +46,12 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
     rl_reward_sum_2 = []
     rl_dis_reward_sum_1 = []
     rl_dis_reward_sum_2 = []
+    rl_logprob_1 = []
+    rl_logprob_2 = []
+    rl_dis_logprob_1 = []
+    rl_dis_logprob_2 = []
+    rl_logprob_label = []
+    rl_dis_logprob_label = []
     q_value_1 = []
     q_value_2 = []
     v_value_1 = []
@@ -113,6 +119,10 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         terminal_seg_1 = data['terminal'][ep_idx1, t_idx1:t_idx1+segment_len].astype(float).squeeze()
         terminal_seg_2 = data['terminal'][ep_idx2, t_idx2:t_idx2+segment_len].astype(float).squeeze()
 
+        # Extract logprob segments
+        logprob_seg_1 = data['logprob'][ep_idx1, t_idx1:t_idx1+segment_len].squeeze()
+        logprob_seg_2 = data['logprob'][ep_idx2, t_idx2:t_idx2+segment_len].squeeze()
+
         # label_keys:
         # rl_dir: \sum_{t} Q(s_t, a_t) - V(s_t)
         # rl_dis_dir: \sum_{t} \gamma^t (Q(s_t, a_t) - V(s_t))
@@ -145,6 +155,13 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         rl_dis_reward_sum_1_val = np.sum(reward_seg_1 * discounts)
         rl_dis_reward_sum_2_val = np.sum(reward_seg_2 * discounts)
 
+        # Compute rl_logprob and rl_dis_logprob
+        rl_logprob_1_val = np.sum(logprob_seg_1)
+        rl_logprob_2_val = np.sum(logprob_seg_2)
+        
+        rl_dis_logprob_1_val = np.sum(logprob_seg_1 * discounts)
+        rl_dis_logprob_2_val = np.sum(logprob_seg_2 * discounts)
+
         # Assign labels based on advantage comparisons
         rl_dir_label.append(0. if rl_dir_1_val > rl_dir_2_val else 1.)
         rl_dis_dir_label.append(0. if rl_dis_dir_1_val > rl_dis_dir_2_val else 1.)
@@ -152,6 +169,8 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         rl_dis_sum_label.append(0. if rl_dis_sum_1_val > rl_dis_sum_2_val else 1.)
         rl_reward_sum_label.append(0. if rl_reward_sum_1_val > rl_reward_sum_2_val else 1.)
         rl_dis_reward_sum_label.append(0. if rl_dis_reward_sum_1_val > rl_dis_reward_sum_2_val else 1.)
+        rl_logprob_label.append(0. if rl_logprob_1_val > rl_logprob_2_val else 1.)
+        rl_dis_logprob_label.append(0. if rl_dis_logprob_1_val > rl_dis_logprob_2_val else 1.)
 
         obs_1.append(obs_seg_1)
         obs_2.append(obs_seg_2)
@@ -177,6 +196,10 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         rl_reward_sum_2.append(rl_reward_sum_2_val)
         rl_dis_reward_sum_1.append(rl_dis_reward_sum_1_val)
         rl_dis_reward_sum_2.append(rl_dis_reward_sum_2_val)
+        rl_logprob_1.append(rl_logprob_1_val)
+        rl_logprob_2.append(rl_logprob_2_val)
+        rl_dis_logprob_1.append(rl_dis_logprob_1_val)
+        rl_dis_logprob_2.append(rl_dis_logprob_2_val)
         # Append additional variables
         q_value_1.append(q_value_seg_1)
         q_value_2.append(q_value_seg_2)
@@ -223,6 +246,12 @@ def generate_preference_data(data, num_samples, segment_len, discount=0.99):
         'rl_reward_sum_2': np.array(rl_reward_sum_2, dtype=float).squeeze(),
         'rl_dis_reward_sum_1': np.array(rl_dis_reward_sum_1, dtype=float).squeeze(),
         'rl_dis_reward_sum_2': np.array(rl_dis_reward_sum_2, dtype=float).squeeze(),
+        'rl_logprob_1': np.array(rl_logprob_1, dtype=float).squeeze(),
+        'rl_logprob_2': np.array(rl_logprob_2, dtype=float).squeeze(),
+        'rl_dis_logprob_1': np.array(rl_dis_logprob_1, dtype=float).squeeze(),
+        'rl_dis_logprob_2': np.array(rl_dis_logprob_2, dtype=float).squeeze(),
+        'rl_logprob_label': np.array(rl_logprob_label, dtype=float),
+        'rl_dis_logprob_label': np.array(rl_dis_logprob_label, dtype=float),
     }
     return preference_data
 
@@ -281,7 +310,9 @@ def generate_data(raw_data_path, prefix=""):
             'rl_sum_label', 
             'rl_dis_sum_label',
             'rl_reward_sum_label',
-            'rl_dis_reward_sum_label'
+            'rl_dis_reward_sum_label',
+            'rl_logprob_label',
+            'rl_dis_logprob_label',
         ]
         
         # Create analysis file path

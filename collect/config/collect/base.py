@@ -2,7 +2,7 @@ from UtilsRL.misc import NameSpace
 
 seed = 0
 task = None
-max_buffer_size = 1000000
+max_buffer_size = 3000000
 discount = 0.99
 tau = 0.005
 alpha = 0.2
