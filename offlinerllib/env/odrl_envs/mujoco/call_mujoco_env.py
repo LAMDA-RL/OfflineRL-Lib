@@ -21,7 +21,7 @@ def call_mujoco_env(env_config: Dict) -> gym.Env:
     if 'morph' in env_name or 'kinematic' in env_name:
         assert shift_level in ['easy', 'medium', 'hard'], 'The required shift is not available yet, please consider modify the xml file on your own or use the shift scale among easy, medium, hard'
     if 'friction' in env_name or 'gravity' in env_name:
-        assert float(shift_level) in [0.1, 0.5, 1.0, 2.0, 5.0], 'The required shift is not available yet, please consider modify the xml file on your own or use the shift scale among 0.1, 0.5, 2.0, 5.0'
+        assert float(shift_level) in [0.1, 0.5, 1.0, 2.0, 5.0], 'The required shift is not available yet, please consider modify the xml file on your own or use the shift scale among 0.1, 0.5, 1.0, 2.0, 5.0'
 
     # decide which task it is, support the following tasks
     # hopper/half_cheetah/walker2d/ant - friction
@@ -34,8 +34,6 @@ def call_mujoco_env(env_config: Dict) -> gym.Env:
         if env_name == 'hopper':
             return gym.make('Hopper-v3')
         elif 'friction' in env_name or 'gravity' in env_name:
-            if float(shift_level) == 1.0:
-                return gym.make('Hopper-v3')
             return TimeLimit(
                 HopperEnv(xml_file=f"{str(Path(__file__).parent.absolute())}/assets/{env_name}_{float(shift_level)}.xml",),
                 max_episode_steps=1000
@@ -55,8 +53,6 @@ def call_mujoco_env(env_config: Dict) -> gym.Env:
         if env_name == 'halfcheetah':
             return gym.make('HalfCheetah-v3')
         elif 'friction' in env_name or 'gravity' in env_name:
-            if float(shift_level) == 1.0:
-                return gym.make('Hopper-v3')
             return TimeLimit(
                 HalfCheetahEnv(xml_file=f"{str(Path(__file__).parent.absolute())}/assets/{env_name}_{float(shift_level)}.xml",),
                 max_episode_steps=1000            
@@ -76,8 +72,6 @@ def call_mujoco_env(env_config: Dict) -> gym.Env:
         if env_name == 'walker2d':
             return gym.make('Walker2d-v3')
         elif 'friction' in env_name or 'gravity' in env_name:
-            if float(shift_level) == 1.0:
-                return gym.make('Hopper-v3')
             return TimeLimit(
                 Walker2dEnv(xml_file=f"{str(Path(__file__).parent.absolute())}/assets/{env_name}_{float(shift_level)}.xml",),
                 max_episode_steps=1000            
@@ -97,8 +91,6 @@ def call_mujoco_env(env_config: Dict) -> gym.Env:
         if env_name == 'ant':
             return gym.make('Ant-v3')
         elif 'friction' in env_name or 'gravity' in env_name:
-            if float(shift_level) == 1.0:
-                return gym.make('Hopper-v3')
             return TimeLimit(
                 AntEnv(xml_file=f"{str(Path(__file__).parent.absolute())}/assets/{env_name}_{float(shift_level)}.xml",),
                 max_episode_steps=1000            
