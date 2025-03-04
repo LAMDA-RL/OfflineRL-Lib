@@ -1,7 +1,7 @@
 import gym
-import robosuite as suite
-from robosuite.utils.mjmod import DynamicsModder
-from robosuite.controllers import load_controller_config
+# import robosuite as suite
+# from robosuite.utils.mjmod import DynamicsModder
+# from robosuite.controllers import load_controller_config
 import numpy as np
 import torch
 import wandb
@@ -18,17 +18,8 @@ from offlinerllib.module.critic import Critic
 from offlinerllib.module.net.mlp import MLP
 from offlinerllib.policy.model_free import SACVPolicy
 from offlinerllib.utils.eval import eval_online_policy
-from offlinerllib.utils.gym_wrapper import GymWrapper
+# from offlinerllib.utils.gym_wrapper import GymWrapper
 
-
-controller_config = load_controller_config(default_controller="OSC_POSE")
-robosuite_env_args = {
-    "horizon": 500,
-    "controller_configs": controller_config,
-    "use_object_obs": True,
-    "reward_shaping": True,
-    "hard_reset": False,
-}
 
 args = parse_args()
 if args.env_type == "dmc":

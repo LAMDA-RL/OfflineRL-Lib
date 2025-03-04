@@ -1,7 +1,7 @@
 import gym
-import robosuite as suite
-from robosuite.utils.mjmod import DynamicsModder
-from robosuite.controllers import load_controller_config
+# import robosuite as suite
+# from robosuite.utils.mjmod import DynamicsModder
+# from robosuite.controllers import load_controller_config
 import numpy as np
 import torch
 import wandb
@@ -18,7 +18,7 @@ from offlinerllib.module.critic import Critic
 from offlinerllib.module.net.mlp import MLP
 from offlinerllib.policy.model_free import SACVPolicy
 from offlinerllib.utils.eval import eval_online_policy
-from offlinerllib.utils.gym_wrapper import GymWrapper
+# from offlinerllib.utils.gym_wrapper import GymWrapper
 from offlinerllib.env.odrl_envs.mujoco.call_mujoco_env import call_mujoco_env
 
 args = parse_args()

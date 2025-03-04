@@ -188,50 +188,45 @@ for i_epoch in trange(1, args.num_epoch + 1):
         else:
             action = policy.select_action(obs)
 
-        next_obs, reward, done, info = env.step(action)
+        next_obs, reward, terminal, info = env.step(action)
         cur_traj_length += 1
         cur_traj_return += reward
-        timeout = False
-        terminal = False
-        if i_step == args.max_trajectory_length - 1:
-            timeout = True
-        elif done:
-            terminal = True
+        if cur_traj_length >= args.max_trajectory_length:
+            terminal = False
+        timeout = cur_traj_length >= args.max_trajectory_length
         buffer.add_sample(
             {
                 "observations": obs,
                 "actions": action,
                 "next_observations": next_obs,
                 "rewards": reward,
-                "terminals": done,
+                "terminals": terminal,
             }
         )
-        if i_epoch <= 1000:
-            traj_buffer.add_sample(
-                {
-                    "obs": obs,
-                    "action": action,
-                    "next_obs": next_obs,
-                    "reward": reward,
-                    "terminal": terminal,
-                    "timeout": timeout,
-                    "mask": 1.0,
-                }
-            )
+        traj_buffer.add_sample(
+            {
+                "obs": obs,
+                "action": action,
+                "next_obs": next_obs,
+                "reward": reward,
+                "terminal": terminal,
+                "timeout": timeout,
+                "mask": 1.0,
+            }
+        )
         obs = next_obs
-        if terminal or timeout or cur_traj_length >= args.max_trajectory_length:
+        if terminal or timeout:
             obs = env.reset()
             all_traj_returns.append(cur_traj_return)
             all_traj_lengths.append(cur_traj_length)
-            if i_epoch <= 1000:
-                collected_data.append(
-                    {
-                        **traj_buffer.fields,
-                        "episode_return": cur_traj_return,
-                        "episode_length": cur_traj_length,
-                    }
-                )
-                traj_buffer.reset()
+            collected_data.append(
+                {
+                    **traj_buffer.fields,
+                    "episode_return": cur_traj_return,
+                    "episode_length": cur_traj_length,
+                }
+            )
+            traj_buffer.reset()
             cur_traj_length = cur_traj_return = 0
 
         if i_epoch < args.warmup_epoch + 1:
